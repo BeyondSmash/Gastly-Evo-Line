@@ -182,7 +182,7 @@ Complete model replacements for each evolution stage-
 ### **Final Smash**
 
 - **Ending Purple De-transform Effect**: During Mega/Giga Gengar forms
-- **Mega Symbol**: Spawns when both player has Final Smash capability + Mega mode are active
+- **Mega Symbol**: Spawns when player has Final Smash capability + Mega mode are active
 - **Distortion Screech**: Effect during climax of final smash
 
 ### **Advanced Animation Integration**
