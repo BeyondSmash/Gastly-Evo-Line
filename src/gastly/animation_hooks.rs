@@ -1,5 +1,4 @@
 // src/gastly/animation_hooks.rs
-// FINAL CLEAN VERSION - No debug clutter
 
 use smash::app::lua_bind::{StatusModule, WorkModule, MotionModule, ModelModule, VisibilityModule};
 use smash::app::BattleObjectModuleAccessor;
@@ -149,5 +148,4 @@ pub unsafe fn detect_expression_from_game_state(
 }
 
 pub fn install_animation_hooks() {
-    println!("[ANIMATION_HOOKS] Vanilla expression tracking enabled!");
-} 
+    } 

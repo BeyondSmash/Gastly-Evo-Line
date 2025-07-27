@@ -1,4 +1,4 @@
-// src/gastly/player_state.rs - UPDATED TO REMOVE OLD AURA TRACKING
+// src/gastly/player_state.rs
 
 use std::collections::HashMap;
 use smash::app::BattleObjectModuleAccessor;
@@ -136,8 +136,6 @@ pub struct PlayerEvolutionState {
     pub evolution_just_cancelled_this_frame: bool,
     pub evolution_cancel_fade_timer: i32,
 
-    // REMOVED: Old aura tracking (now handled by gapless system)
-    // pub current_aura_handle: Option<u32>,
 
     // Mewtwo shadowball effect tracking
     pub mewtwo_shadowball_hold_spawn_frame: i32,
@@ -250,8 +248,6 @@ impl PlayerEvolutionState {
             evolution_just_cancelled_this_frame: false,
             evolution_cancel_fade_timer: -1, // -1 means not active
 
-            // REMOVED: Old aura tracking
-            // current_aura_handle: None,
 
             // Mewtwo shadowball effect tracking
             mewtwo_shadowball_hold_spawn_frame: 0,
@@ -273,14 +269,11 @@ impl PlayerEvolutionState {
         }
     }
 
-    // All other methods remain the same, just remove any references to current_aura_handle
     pub unsafe fn reset_for_new_stage(&mut self, new_stage: EvolutionStage, _my_boma: *mut BattleObjectModuleAccessor) {
         self.stage = new_stage;
         self.damage_received_this_stage = 0.0;
         self.hits_landed_this_stage = 0;
 
-        // REMOVED: Old aura handle tracking
-        // self.current_aura_handle = None;
 
         self.shadowball_status_frames = 0;
         self.is_in_shadowball_status = false;
@@ -379,9 +372,6 @@ impl PlayerEvolutionState {
 
     }
 
-    // Rest of the methods remain exactly the same...
-    // (Including all the existing methods like reset_evo_readiness_icons, advance_blink_phase, etc.)
-    
     pub fn reset_evo_readiness_icons(&mut self) {
         self.dmg_t_icon_display_timer = 0;
         self.dmg_t_icon_is_locked_out = false;
@@ -521,10 +511,6 @@ impl PlayerEvolutionState {
                 EvolutionStage::Gengar => *GENGAR_EYE_ATTACK,
             };
 
-            if ATTACKMODULE_DEBUG_LOGGING && self.current_frame % 30 == 0 {
-            //    println!("[VEMD+AttackModule] Using attack expression due to hitbox detection: {:?}",
-            //            self.last_hitbox_detection_method);
-            }
             return Some(attack_expression);
         }
         None
@@ -658,16 +644,13 @@ impl PlayerEvolutionState {
     pub fn start_evolution_process(&mut self, target_stage: EvolutionStage, fighter: &mut L2CFighterCommon, is_manual_trigger: bool) {
         let boma = fighter.module_accessor;
         if self.is_evolving {
-            println!("[EVOLUTION] Already evolving - ignoring start request");
             return;
         }
         if self.stage == target_stage {
-            println!("[EVOLUTION] Already at target stage - ignoring start request");
             return;
         }
 
         if !is_manual_trigger && self.everstone_effect_active {
-            println!("[EVOLUTION] Everstone active - ignoring auto evolution");
             return;
         }
 
@@ -682,7 +665,6 @@ impl PlayerEvolutionState {
                     HAUNTER_EVO_HITS_THRESHOLD + self.evo_attempt_delay_hits_penalty
                 ),
                 _ => {
-                    println!("[EVOLUTION] Invalid stage for auto evolution");
                     return;
                 }
             };
@@ -691,22 +673,14 @@ impl PlayerEvolutionState {
             let hits_met = self.hits_landed_this_stage >= required_hits;
 
             if !dmg_received_met || !hits_met {
-                // println!("[EVOLUTION] Conditions not met - DMG: {}/{}, HITS: {}/{}", 
-                //        self.damage_received_this_stage, required_dmg_received,
-                //        self.hits_landed_this_stage, required_hits);
                 return;
             }
         }
 
-        // CRITICAL FIX: Set evolution state flags in correct order
         self.linking_cord_active = true;
         self.is_evolving = true;
         self.evolution_target_stage = target_stage;
         self.evolution_timer = 0;
-        
-        println!("[EVOLUTION] ★ STARTED EVOLUTION ★ - Frame: {}, Target: {:?}, Manual: {}", 
-                self.current_frame, target_stage, is_manual_trigger);
-        println!("[EVOLUTION] is_evolving = true, evolution_timer = 0");
 
         // Handle manual evolution icon
         if is_manual_trigger && self.stage == EvolutionStage::Haunter && target_stage == EvolutionStage::Gengar {
@@ -717,9 +691,6 @@ impl PlayerEvolutionState {
             self.linking_cord_evo_attempt_icon_is_pos_sensitive = true;
         }
         
-        // CRITICAL FIX: Log the exact state that the sound system should detect
-        println!("[EVOLUTION] Sound system should now detect: is_evolving={}, timer={}", 
-                self.is_evolving, self.evolution_timer);
     }
 
     pub fn confirm_evolution(&mut self, fighter: &mut L2CFighterCommon) {
@@ -732,17 +703,12 @@ impl PlayerEvolutionState {
             }
         }
 
-        println!("[EVOLUTION] ★ CONFIRMING EVOLUTION ★ to {:?} at frame {}", 
-                self.evolution_target_stage, self.current_frame);
-        
-        // CRITICAL FIX: Clear evolution flags BEFORE reset_for_new_stage
+        // Clear evolution flags BEFORE reset_for_new_stage
         let target_stage = self.evolution_target_stage;
         self.is_evolving = false;
         self.linking_cord_active = false;
         self.linking_cord_evo_attempt_icon_timer = 0;
         self.linking_cord_evo_attempt_icon_is_pos_sensitive = false;
-        
-        println!("[EVOLUTION] Cleared evolution flags - is_evolving = false");
 
         unsafe { 
             self.reset_for_new_stage(target_stage, boma); 
@@ -759,15 +725,10 @@ impl PlayerEvolutionState {
 
         // Set the flag AFTER reset_for_new_stage so it doesn't get cleared
         self.evolution_just_completed_this_frame = true;
-        
-        println!("[EVOLUTION] ★ EVOLUTION CONFIRMED ★ - Now stage: {:?}", self.stage);
     }
 
-    // UPDATED: Enhanced cancel_evolution with better sound cleanup
     pub fn cancel_evolution(&mut self, fighter: &mut L2CFighterCommon) {
         let boma = fighter.module_accessor;
-        
-        println!("[EVOLUTION] ★ CANCELLING EVOLUTION ★ at frame {}", self.current_frame);
         
         self.is_evolving = false;
         self.linking_cord_active = false;
@@ -775,9 +736,8 @@ impl PlayerEvolutionState {
         self.linking_cord_evo_attempt_icon_is_pos_sensitive = false;
         self.evolution_timer = 0;
 
-        // NEW: Simple 15% damage penalty for cancellation
+        // Simple 15% damage penalty for cancellation
         self.evo_attempt_delay_damage_taken_penalty += 15.0;
-        // No hits penalty - keep default hits requirement
         
         self.down_taunt_cancel_press_count = 0;
         self.last_evolution_confirmation_frame = -1;
@@ -809,8 +769,6 @@ impl PlayerEvolutionState {
             ModelModule::set_mesh_visibility(boma, *STG2_DMG_SS_ICON, false);
             ModelModule::set_mesh_visibility(boma, *STG2_DMG_SE_ICON, false);
         }
-        
-        println!("[EVOLUTION] Cancel evolution complete - is_evolving = false");
     }
 
     pub fn get_attackmodule_status(&self) -> String {
@@ -840,11 +798,6 @@ impl PlayerEvolutionState {
         let attack_1 = AttackModule::is_attack(boma, 1, false);
         let attack_2 = AttackModule::is_attack(boma, 2, false);
 
-        if infliction || occur || attack_0 || attack_1 || attack_2 {
-            println!("[ATTACKMODULE DETAILED Frame {}] infliction={}, occur={}, attacks=[{},{},{}], method={:?}, consecutive={}",
-                    frame, infliction, occur, attack_0, attack_1, attack_2,
-                    self.last_hitbox_detection_method, self.attackmodule_consecutive_detections);
-        }
     }
 
     pub unsafe fn get_comprehensive_debug_report(&self, _boma: *mut BattleObjectModuleAccessor) -> String {

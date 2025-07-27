@@ -10,12 +10,8 @@ use smashline::*;
 use smash::app::sv_animcmd::*;
 
 // Import our sound system
-use crate::gastly::sounds::GASTLY_AUDIO_DEBUG;
 use crate::gastly::{FIGHTER_STATES};
 use crate::gastly::player_state::EvolutionStage;
-
-// WIFI SAFETY TOGGLE - Set to false to disable all PLAY_SEQUENCE calls
-const ENABLE_PLAY_SEQUENCE: bool = true; // Change to false to test wifi safety
 
 // Helper function to get stage-specific attack voice
 unsafe fn get_attack_voice_correct(boma: *mut BattleObjectModuleAccessor, attack_type: &str) -> &'static str {
@@ -83,10 +79,6 @@ unsafe extern "C" fn sound_attackairb(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Back air: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -114,10 +106,6 @@ unsafe extern "C" fn sound_attackairhi(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Up air: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -145,10 +133,6 @@ unsafe extern "C" fn sound_attackdash(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Dash attack: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -176,10 +160,6 @@ unsafe extern "C" fn sound_attackhi3(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Up tilt: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -209,10 +189,6 @@ unsafe extern "C" fn sound_attacks3(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Forward tilt: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -241,8 +217,6 @@ unsafe extern "C" fn sound_attacks3hi(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            println!("[ATTACK VOICE] Forward tilt hi: {} (60% chance)", attack_sound);
         }
     }
 }
@@ -270,8 +244,6 @@ unsafe extern "C" fn sound_attacks3lw(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            println!("[ATTACK VOICE] Forward tilt lw: {} (60% chance)", attack_sound);
         }
     }
 }
@@ -298,10 +270,6 @@ unsafe extern "C" fn sound_specialairs(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Side special air: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -328,10 +296,6 @@ unsafe extern "C" fn sound_specials(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Side special: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -360,10 +324,6 @@ unsafe extern "C" fn sound_attacks4(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Forward smash: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -380,7 +340,7 @@ unsafe extern "C" fn sound_attackhi4(agent: &mut L2CAgentBase) {
         macros::PLAY_SE(agent, Hash40::new("se_purin_swing_ll"));
     }
     
-    // NEW: Add attack voice 1 frame after PLAY_SEQUENCE
+    //  Add attack voice 1 frame after PLAY_SEQUENCE
     frame(lua_state, 17.0);
     if macros::is_excute(agent) {
         let voice_chance = crate::gastly::random_module::rand_range_i32(1, 100);
@@ -393,10 +353,6 @@ unsafe extern "C" fn sound_attackhi4(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 2.5, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Up smash: {} (20% chance)", attack_sound);
-            }
         }
     }
     
@@ -427,5 +383,4 @@ pub fn install_attack_voices_remaining_with_costumes(costume: &[usize]) {
         .sound_acmd("sound_attackhi4", sound_attackhi4, Priority::Low)
         .install();
     
-    println!("[ATTACK VOICES] Attack voices with costume filtering installed for {:?}!", costume);
 }

@@ -1,4 +1,4 @@
-// src/gastly/evolution_logic.rs - Updated animation advancement function
+// src/gastly/evolution_logic.rs
 
 use smash::app::lua_bind::{StatusModule, ControlModule, MotionModule, ModelModule, PostureModule, EffectModule, SoundModule}; 
 use smash::app::BattleObjectModuleAccessor;
@@ -74,7 +74,7 @@ pub unsafe fn handle_evolution_process(fighter: &mut L2CFighterCommon, player_st
     // If already evolving (e.g., manual trigger started it) or Everstone is active, don't check auto-evo
     if player_state.is_evolving || player_state.everstone_effect_active { return; } 
 
-    // NEW: Check if readiness icons are currently displaying - if so, delay auto-evolution
+    //  Check if readiness icons are currently displaying - if so, delay auto-evolution
     let readiness_icons_active = player_state.dmg_t_icon_display_timer > 0 ||
                                 player_state.dmg_d_icon_display_timer > 0 ||
                                 player_state.dmg_ss_icon_display_timer > 0 ||
@@ -97,7 +97,7 @@ pub unsafe fn handle_evolution_process(fighter: &mut L2CFighterCommon, player_st
     }
 }
 
-// FIXED: Evolution animation with evolving mesh system instead of flash
+//  Evolution animation with evolving mesh system instead of flash
 pub unsafe fn advance_evolution_animation(fighter: &mut L2CFighterCommon, player_state: &mut PlayerEvolutionState) { 
     let boma = fighter.module_accessor;
     player_state.evolution_timer += 1;
@@ -114,10 +114,8 @@ pub unsafe fn advance_evolution_animation(fighter: &mut L2CFighterCommon, player
         // Initialize status tracking
         player_state.last_status_during_evolution = StatusModule::status_kind(boma);
         
-        // IMPORTANT: Remove any lingering flash effects from previous evolution attempts
+        // Remove any lingering flash effects from previous evolution attempts
         macros::COL_NORMAL(fighter);
-        
-        println!("[EVOLUTION] Started evolving mesh animation - no more flash!");
     }
 
     // ganon_final_transform effect at 3/4 of evolution (180/240 frames)
@@ -137,7 +135,6 @@ pub unsafe fn advance_evolution_animation(fighter: &mut L2CFighterCommon, player
         
         if handle != u64::MAX as u32 && handle != 0 {
             EffectModule::set_rate(boma, handle, 0.4);
-            println!("[EVOLUTION] Spawned ganon transform effect");
         }
     }
     
@@ -153,7 +150,7 @@ pub unsafe fn advance_evolution_animation(fighter: &mut L2CFighterCommon, player
         ModelModule::set_mesh_visibility(boma, *LINKING_CORD_ICON, true);
     }
     
-    // CRITICAL: The evolving mesh system now handles all visual changes!
+    // The evolving mesh system now handles all visual changes!
     // The set_active_eye_mesh function will detect player_state.is_evolving = true
     // and automatically show the appropriate evolving meshes based on:
     // - Current animation (squat_wait -> evolving floor shadow)
@@ -177,7 +174,6 @@ pub unsafe fn advance_evolution_animation(fighter: &mut L2CFighterCommon, player
 
     // Check if evolution animation duration is complete
     if player_state.evolution_timer >= EVOLUTION_ANIMATION_TOTAL_FRAMES {
-        println!("[EVOLUTION] Animation complete - confirming evolution and clearing evolving meshes!");
         player_state.confirm_evolution(fighter);
     }
 }

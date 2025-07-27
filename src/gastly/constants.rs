@@ -1,12 +1,10 @@
-// src/gastly/constants.rs - ENHANCED AURA CONFIGURATION FOR GAPLESS SYSTEM
+// src/gastly/constants.rs
 
 use smash::phx::Hash40;
 use smash::hash40;
 use once_cell::sync::Lazy;
 use smash::lib::lua_const::*; // For FIGHTER_STATUS_KIND_ constants
 
-pub const GASTLY_AURA_DEBUG_LOGGING: bool = false;
-pub const GASTLY_AUDIO_DEBUG: bool = true; // Set to false to disable debug logs
 
 pub const GASTLY_AURA_SCALE: f32 = 2.5;
 
@@ -17,8 +15,6 @@ pub const FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GENGAR_CUTIN_READY: i32 = 0x200000
 // CUTIN SYSTEM TOGGLE
 pub const ENABLE_EVOLUTION_CUTINS: bool = false;  // Set to true to enable cutins
 
-// Debug flag for evolving mesh system
-pub const EVOLVING_MESH_DEBUG_LOGGING: bool = false;
 
 // Gastly evolving meshes
 pub static GASTLY_EVOLVING: Lazy<Hash40> = Lazy::new(|| Hash40 { hash: hash40("gastly_evolving") });

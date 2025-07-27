@@ -2,7 +2,7 @@
 
 use smash::app::lua_bind::{ModelModule, PostureModule, ControlModule, StatusModule, SoundModule};
 use smash::app::BattleObjectModuleAccessor;
-use smash::phx::Hash40; // REMOVE Vector3f import
+use smash::phx::Hash40;
 use smash::lib::lua_const::*;
 use skyline::libc::c_int;
 
@@ -16,15 +16,13 @@ pub unsafe fn deactivate_readiness_icons_for_everstone(player_state: &mut Player
     player_state.dmg_d_icon_display_timer = 0;
     player_state.dmg_ss_icon_display_timer = 0;
     player_state.dmg_se_icon_display_timer = 0;
-    
-    println!("[ICON FIX] Deactivated readiness icons for everstone");
 }
 
 pub unsafe fn enforce_icon_exclusivity(player_state: &mut PlayerEvolutionState, newly_activated_icon_hash_opt: Option<Hash40>) { 
     let mut deactivated_something = false;
     let is_activating_manual_evo_lc = newly_activated_icon_hash_opt.map_or(false, |h| h.hash == LINKING_CORD_ICON.hash);
     let is_activating_everstone = newly_activated_icon_hash_opt.map_or(false, |h| h.hash == EVERSTONE_ICON.hash || h.hash == EVERSTONE_X_ICON.hash);
-    // NEW: If activating everstone, hide readiness icons
+    //  If activating everstone, hide readiness icons
     if is_activating_everstone {
         deactivate_readiness_icons_for_everstone(player_state);
     }
@@ -88,8 +86,6 @@ pub fn update_is_any_pos_sensitive_icon_active_flag(player_state: &mut PlayerEvo
         player_state.gengarite_icon_display_active ||
         player_state.dynamax_icon_display_active;
 
-    // REMOVE all billboard bone animation stuff
-    // Just keep the flag update
 }
 
 // SIMPLIFIED: Just activate the icon timer, no positioning
@@ -101,9 +97,6 @@ pub unsafe fn activate_pos_sensitive_icon(
 ) { 
     player_state.icon_start_pos_x = current_player_pos_x; 
     player_state.icon_start_pos_y = current_player_pos_y;
-    
-    // REMOVE all billboard bone positioning and animation
-    // Icons will just appear instantly at their natural mesh position
     
     update_is_any_pos_sensitive_icon_active_flag(player_state);
 }
@@ -137,8 +130,6 @@ pub unsafe fn deactivate_all_pos_sensitive_icons(
         player_state.dynamax_icon_display_active = false;
         player_state.dynamax_icon_display_timer = 0;
     }
-    
-    // REMOVE all billboard bone manipulation
     
     update_is_any_pos_sensitive_icon_active_flag(player_state);
 }
@@ -189,7 +180,6 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
         FighterUtil::flash_eye_info(boma);
         // Play everstone_x sound
         crate::gastly::persist_sfx::play_everstone_x_sound(boma);
-        println!("[ICON SOUND] Played everstone_x sound");
     }
 
     // Manual Linking Cord for Haunter (Up Taunt x2 while guarding on ground)
@@ -223,8 +213,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                             // UI EFFECT: Flash when Linking Cord appears
                             FighterUtil::flash_eye_info(boma);
                             // Play linking_cord sound
-                            crate::gastly::persist_sfx::play_linking_cord_sound(boma);                                        
-                            println!("[ICON SOUND] Played linking_cord sound");
+                            crate::gastly::persist_sfx::play_linking_cord_sound(boma);
                         }
                     }
                 }
@@ -257,8 +246,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                         // UI EFFECT: Flash when Everstone X appears during evolution
                         FighterUtil::flash_eye_info(boma);
                         // Play everstone_x sound
-                        crate::gastly::persist_sfx::play_everstone_x_sound(boma);                   
-                        println!("[ICON SOUND] Played everstone_x sound");
+                        crate::gastly::persist_sfx::play_everstone_x_sound(boma);
                     }
                 } else {
                     if player_state.current_frame - player_state.last_special_press_frame_everstone <= DOUBLE_PRESS_WINDOW {
@@ -281,8 +269,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                             // UI EFFECT: Flash when Everstone activates
                             FighterUtil::flash_eye_info(boma);
                             // Play everstone sound
-                            crate::gastly::persist_sfx::play_everstone_sound(boma);               
-                            println!("[ICON SOUND] Played everstone sound");
+                            crate::gastly::persist_sfx::play_everstone_sound(boma);
                         } else {
                             enforce_icon_exclusivity(player_state, Some(*EVERSTONE_X_ICON));
                             player_state.everstone_icon_active = false; 
@@ -294,8 +281,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                             // UI EFFECT: Flash when Everstone deactivates (X appears)
                             FighterUtil::flash_eye_info(boma);
                             // Play everstone_x sound
-                            crate::gastly::persist_sfx::play_everstone_x_sound(boma);                       
-                            println!("[ICON SOUND] Played everstone_x sound");
+                            crate::gastly::persist_sfx::play_everstone_x_sound(boma);
                         }
                     }
                 }
@@ -331,8 +317,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                 // UI EFFECT: Flash when Gengarite appears
                 FighterUtil::flash_eye_info(boma);
                 // Play gengarite sound
-                crate::gastly::persist_sfx::play_gengarite_sound(boma);                          
-                println!("[ICON SOUND] Played gengarite sound");
+                crate::gastly::persist_sfx::play_gengarite_sound(boma);
             }
         }
 
@@ -356,8 +341,7 @@ pub unsafe fn handle_icon_toggles_and_effects(boma: *mut BattleObjectModuleAcces
                     // UI EFFECT: Flash when Dynamax appears
                     FighterUtil::flash_eye_info(boma);
                     // Play dynamax sound
-                    crate::gastly::persist_sfx::play_dynamax_sound(boma);           
-                    println!("[ICON SOUND] Played dynamax sound");
+                    crate::gastly::persist_sfx::play_dynamax_sound(boma);
                 }
             }
         }

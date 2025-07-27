@@ -28,11 +28,11 @@ const DARK_MOVE_DOWN_TILT: u32 = 2;
 const DARK_MOVE_DOWN_SMASH: u32 = 7;
 const DARK_MOVE_NEUTRAL_AIR: u32 = 8;
 const DARK_MOVE_FORWARD_AIR: u32 = 9;
-const DARK_MOVE_DOWN_AIR: u32 = 10; // NEW: Down Air with bomber sweat (Gastly/Haunter only)
+const DARK_MOVE_DOWN_AIR: u32 = 10; //  Down Air with bomber sweat (Gastly/Haunter only)
 const DARK_MOVE_DOWN_SPECIAL: u32 = 12; // Down Special with poison effect
 const DARK_MOVE_NEUTRAL_SPECIAL_ROLLOUT: u32 = 13; // For rollout flash effect
 const DARK_MOVE_FORWARD_SPECIAL: u32 = 14;
-const DARK_MOVE_PUMMEL: u32 = 16; // NEW: Pummel with bomber sweat (All stages)
+const DARK_MOVE_PUMMEL: u32 = 16; //  Pummel with bomber sweat (All stages)
 
 // Global frame counter
 static mut PSEUDO_GLOBAL_FRAME_COUNT: u32 = 0;
@@ -121,7 +121,7 @@ unsafe fn check_for_dark_move(boma: *mut BattleObjectModuleAccessor) -> Option<(
             } else if motion_hash.hash == smash::hash40("attack_air_f") {
                 Some(DARK_MOVE_FORWARD_AIR) // Forward Air
             } else if motion_hash.hash == smash::hash40("attack_air_lw") {
-                // NEW: Down Air with bomber sweat (Gastly/Haunter only)
+                //  Down Air with bomber sweat (Gastly/Haunter only)
                 if evolution_stage == 0 || evolution_stage == 1 { // Gastly or Haunter
                     Some(DARK_MOVE_DOWN_AIR)
                 } else {
@@ -133,11 +133,11 @@ unsafe fn check_for_dark_move(boma: *mut BattleObjectModuleAccessor) -> Option<(
         },
         s if s == *FIGHTER_STATUS_KIND_SPECIAL_S => Some(DARK_MOVE_FORWARD_SPECIAL), // Forward Special
         s if s == *FIGHTER_STATUS_KIND_SPECIAL_LW => Some(DARK_MOVE_DOWN_SPECIAL), // Down Special
-        // FIXED: Neutral Special hit status (when shadowball bomb occurs)
+        //  Neutral Special hit status (when shadowball bomb occurs)
         s if s == 0x1E7 => { // SPECIAL_N_HIT_END status
             Some(DARK_MOVE_NEUTRAL_SPECIAL_ROLLOUT)
         },
-        s if s == *FIGHTER_STATUS_KIND_CATCH_ATTACK => Some(DARK_MOVE_PUMMEL), // NEW: Pummel with bomber sweat (All stages)
+        s if s == *FIGHTER_STATUS_KIND_CATCH_ATTACK => Some(DARK_MOVE_PUMMEL), //  Pummel with bomber sweat (All stages)
         _ => None,
     };
     
@@ -167,8 +167,7 @@ unsafe fn update_purple_flash_effects_with_status_detection(fighter: &mut L2CFig
                 } else if data.flash_last_status != current_status {
                     // Status changed! Restart flash if we haven't completed the planned duration
                     if data.flash_elapsed_duration < data.flash_total_planned_duration {
-                        println!("[DARK EFFECTS] Status change detected during flash ({}->{}), restarting flash", 
-                                data.flash_last_status, current_status);
+                        // Status changed during flash - restart flash sequence
                         data.flash_stage = 1;
                         data.flash_timer = 8;
                         data.flash_last_status = current_status;
@@ -291,7 +290,7 @@ unsafe fn cleanup_flash_effects_on_death(entry_id: u32) {
     }
 }
 
-// NEW: Main dark effects handler called from mod.rs
+//  Main dark effects handler called from mod.rs
 unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon) {
     let module_accessor: *mut BattleObjectModuleAccessor = fighter.module_accessor;
     let fighter_entry_id_u32 = WorkModule::get_int(module_accessor, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
@@ -327,7 +326,6 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                 
                 if !attackers.iter().any(|a| a.entry_id == fighter_entry_id_u32) {
                     attackers.push(attacker_info);
-                    println!("[DARK EFFECTS] Added neutral special hit end attacker {}", fighter_entry_id_u32);
                 }
             }
         } else {
@@ -347,12 +345,6 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                     // Check if this attacker is already in the list
                     if !attackers.iter().any(|a| a.entry_id == fighter_entry_id_u32) {
                         attackers.push(attacker_info);
-                        println!("[DARK EFFECTS] Added {} attacker {} (stage {})", 
-                                match move_type {
-                                    DARK_MOVE_DOWN_AIR => "down air",
-                                    DARK_MOVE_PUMMEL => "pummel", 
-                                    _ => "other"
-                                }, fighter_entry_id_u32, evolution_stage);
                     }
                 }
             }
@@ -435,7 +427,7 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                     begin_enhanced_purple_flash(fighter_entry_id_u32, 120);
                     
                 } else if has_down_air {
-                    // NEW: Down Air - sys_bomber_sweat effect (NO FLASH) - Gastly/Haunter only
+                    //  Down Air - sys_bomber_sweat effect (NO FLASH) - Gastly/Haunter only
                     let effect_handle = EffectModule::req_follow(
                         module_accessor,
                         Hash40::new("sys_bomber_sweat"),
@@ -456,7 +448,6 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                     }
                     
                     // NO FLASH for down air
-                    println!("[DARK EFFECTS] sys_bomber_sweat (down air) effect on victim {}", fighter_entry_id_u32);
                     
                 } else if has_neutral_special_rollout {
                     // Neutral Special Rollout - ganon effect + purple flash
@@ -477,10 +468,9 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                     }
                     
                     begin_purple_flash(fighter_entry_id_u32);
-                    println!("[DARK EFFECTS] Ganon effect + purple flash (rollout) on victim {}", fighter_entry_id_u32);
                     
                 } else if has_pummel {
-                    // NEW: Pummel (All stages): sys_bomber_sweat effect (NO FLASH)
+                    //  Pummel (All stages): sys_bomber_sweat effect (NO FLASH)
                     let effect_handle = EffectModule::req_follow(
                         module_accessor,
                         Hash40::new("sys_bomber_sweat"),
@@ -501,7 +491,6 @@ unsafe extern "C" fn gastly_dark_effects_handler(fighter: &mut L2CFighterCommon)
                     }
                     
                     // NO FLASH for pummel effects
-                    println!("[DARK EFFECTS] sys_bomber_sweat (pummel) effect on victim {}", fighter_entry_id_u32);
                     
                 } else if has_regular_dark_move {
                     // Regular dark moves: ganon_attack_purple effect + purple flash
@@ -549,7 +538,6 @@ pub fn install_dark_effects() {
         .on_line(smashline::Main, gastly_dark_effects_handler)
         .install();
     
-    println!("[DARK EFFECTS] Dark effects system installed with proper hooks!");
 }
 
 // Public function to clean up flash effects (call from your main mod on death/respawn)
@@ -565,13 +553,11 @@ pub unsafe fn cleanup_dark_effects_on_death(entry_id: u32) {
             data.flash_total_planned_duration = 0;
             data.flash_elapsed_duration = 0;
             data.flash_last_status = -1;
-            
-            println!("[DARK_CLEANUP] Force reset all flash state for entry {}", entry_id);
         }
     }
 }
 
-// NEW: Enhanced function to get a fighter's L2CFighterCommon and force COL_NORMAL
+//  Enhanced function to get a fighter's L2CFighterCommon and force COL_NORMAL
 pub unsafe fn force_clear_flash_for_entry(entry_id: u32) {
     // Clean up the data state
     cleanup_dark_effects_on_death(entry_id);
@@ -581,15 +567,13 @@ pub unsafe fn force_clear_flash_for_entry(entry_id: u32) {
     if !fighter_boma.is_null() {
         // Force reset color blend
         smash::app::lua_bind::ColorBlendModule::cancel_main_color(fighter_boma, 0);
-        println!("[DARK_CLEANUP] Forced ColorBlend reset for entry {}", entry_id);
     }
 }
 
-// NEW: Global cleanup function that can be called from agent_init
+//  Global cleanup function that can be called from agent_init
 pub unsafe fn force_cleanup_all_flash_effects() {
     // Clean up all players
     for entry_id in 0..8u32 {
         force_clear_flash_for_entry(entry_id);
     }
-    println!("[DARK_CLEANUP] Force cleaned all flash effects for all players");
 } 

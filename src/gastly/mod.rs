@@ -75,7 +75,7 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
         SoundModule::stop_se_handle(boma, SHADOWBALL_CHARGE_HANDLE[entry_id] as i32, 0);
         SHADOWBALL_CHARGE_HANDLE[entry_id] = 0;
     }
-    // NEW: Clean up new sound handles
+    // Clean up new sound handles
     if G_GRAB_BURN_HANDLE[entry_id] != 0 {
         SoundModule::stop_se_handle(boma, G_GRAB_BURN_HANDLE[entry_id] as i32, 0);
         G_GRAB_BURN_HANDLE[entry_id] = 0;
@@ -90,7 +90,7 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
     SoundModule::stop_se(boma, Hash40::new("evolve_ss"), 0);
     SoundModule::stop_se(boma, Hash40::new("g_shadowball_charge"), 0);
     SoundModule::stop_se(boma, Hash40::new("g_furafura"), 0);
-    // NEW: Stop new sounds by name
+    // Stop new sounds by name
     SoundModule::stop_se(boma, Hash40::new("g_grab_burn"), 0);
     SoundModule::stop_se(boma, Hash40::new("megasymbol"), 0);
     
@@ -99,7 +99,7 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_EVOLVE_SS_ACTIVE);
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_SHADOWBALL_CHARGE_ACTIVE);
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_FURAFURA_ACTIVE);
-    // NEW: Reset new flags
+    // Reset new flags
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_GRAB_BURN_ACTIVE);
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_MEGASYMBOL_ACTIVE);
 
@@ -111,11 +111,10 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVING_TIMER);
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVE_SS_TIMER);
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_G_FURAFURA_TIMER);
-    // NEW: Reset new timers
+    // Reset new timers
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_G_GRAB_BURN_TIMER);
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_MEGASYMBOL_TIMER);
     
-    println!("[EVOLUTION CLEANUP] All evolution sounds stopped and flags reset for entry {}", entry_id);
 }
 
 // Global state for all fighters playing as Purin/Gastly
@@ -191,7 +190,7 @@ unsafe extern "C" fn init_gastly_aura(fighter: &mut L2CFighterCommon) {
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GASTLY_AURA_ACTIVE);
 }
 
-// FIXED: Handle down special blink mesh visibility with proper mesh management
+//  Handle down special blink mesh visibility with proper mesh management
 unsafe fn handle_down_special_blink(boma: *mut BattleObjectModuleAccessor, player_state: &mut PlayerEvolutionState) -> bool {
     let current_status = StatusModule::status_kind(boma);
     
@@ -260,7 +259,6 @@ unsafe fn handle_down_special_blink(boma: *mut BattleObjectModuleAccessor, playe
             // FOURTH: Show ONLY the blink mesh
             ModelModule::set_mesh_visibility(boma, blink_mesh, true);
             
-            // println!("[DOWN_SPECIAL_BLINK] Frame {:.1} - Blink mesh set to visible: {:#x}", 
             //        motion_frame, blink_mesh.hash);
             
             return true; // Indicate we're overriding eye expression for down special
@@ -434,13 +432,10 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
 
     // Debug evolution progress every 60 frames
     if player_state.current_frame % 60 == 0 && (damage_condition_met || hits_condition_met) {
-        println!("[EVOLUTION PROGRESS] Damage: {:.1}/{:.1} (met: {}), Hits: {}/{} (met: {})", 
-                player_state.damage_received_this_stage, required_dmg_received, damage_condition_met,
-                player_state.hits_landed_this_stage, required_hits, hits_condition_met);
     }
 
     // --- Logic for resetting "lockout" flags ---
-    // FIXED: Only reset lockout after evolution OR significant drop in progress (training reset)
+    //  Only reset lockout after evolution OR significant drop in progress (training reset)
     let significant_progress_drop = 
         (player_state.damage_received_this_stage < required_dmg_received * 0.5) ||
         (player_state.hits_landed_this_stage < required_hits / 2);
@@ -450,34 +445,28 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         player_state.reset_evo_readiness_icons();
         player_state.last_evolution_confirmation_frame = -1;
         
-        // FIXED: Reset flash flag after evolution timeout to allow new flash
+        //  Reset flash flag after evolution timeout to allow new flash
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
         if entry_id < 8 {
             READINESS_FLASH_OCCURRED[entry_id] = false;
-            println!("[READINESS FLASH] Reset flash flag after evolution timeout");
         }
         
-        println!("[ICON LOCKOUT] Reset lockout after 5 seconds from evolution");
     }
 
-    // CRITICAL FIX: Only unlock lockouts when conditions are ACTUALLY no longer met
+    //  Only unlock lockouts when conditions are ACTUALLY no longer met
     // This prevents damage icon from persistently flashing when damage stays high
     if !damage_condition_met && player_state.dmg_t_icon_is_locked_out {
         player_state.dmg_t_icon_is_locked_out = false;
-        println!("[ICON LOCKOUT] Unlocked T icon - damage condition no longer met");
     }
     if !hits_condition_met && player_state.dmg_d_icon_is_locked_out {
         player_state.dmg_d_icon_is_locked_out = false;
-        println!("[ICON LOCKOUT] Unlocked D icon - hits condition no longer met");
     }
     if !damage_condition_met || !hits_condition_met {
         if player_state.dmg_ss_icon_is_locked_out {
             player_state.dmg_ss_icon_is_locked_out = false;
-            println!("[ICON LOCKOUT] Unlocked SS icon - both conditions no longer met");
         }
         if player_state.dmg_se_icon_is_locked_out {
             player_state.dmg_se_icon_is_locked_out = false;
-            println!("[ICON LOCKOUT] Unlocked SE icon - both conditions no longer met");
         }
     }
     
@@ -486,12 +475,11 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
         if entry_id < 8 {
             READINESS_FLASH_OCCURRED[entry_id] = false;
-            println!("[READINESS FLASH] Reset flash flag due to training reset");
         }
     }
 
     // --- Icon Trigger and Precedence Logic ---
-    // FIXED: Track if flash already occurred for readiness icons to prevent spam
+    //  Track if flash already occurred for readiness icons to prevent spam
     static mut READINESS_FLASH_OCCURRED: [bool; 8] = [false; 8];
     
     let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
@@ -499,8 +487,8 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
     let mut ss_triggered_this_frame = false;
     let mut t_triggered_this_frame = false;
 
-    // 1. Try to trigger Both Conditions Met (SS -> SE sequence) FIRST
-    if both_conditions_met {
+    // 1. Try to trigger Both Conditions Met (SS -> SE sequence) FIRST - both Gastly and Haunter stages
+    if both_conditions_met && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) {
         if player_state.dmg_ss_icon_display_timer == 0 && !player_state.dmg_ss_icon_is_locked_out &&
            player_state.dmg_se_icon_display_timer == 0 && !player_state.dmg_se_icon_is_locked_out {
             
@@ -512,7 +500,6 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                entry_id < 8 && !READINESS_FLASH_OCCURRED[entry_id] {
                 FighterUtil::flash_eye_info(boma);
                 READINESS_FLASH_OCCURRED[entry_id] = true;
-                println!("[READINESS FLASH] Both conditions met - flashed eyes ONCE");
             }
 
             // Add sys_counter_flash effect when SS icon triggers
@@ -540,9 +527,9 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                                                  player_state.dmg_ss_icon_display_timer > 0 ||
                                                  player_state.dmg_se_icon_display_timer > 0;
 
-    // 2. Try to trigger Only Damage Condition Met (T icon)
+    // 2. Try to trigger Only Damage Condition Met (T icon - both Gastly and Haunter stages)
     if !ss_or_se_is_displaying_or_just_triggered { 
-        if damage_condition_met &&
+        if damage_condition_met && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) &&
            player_state.dmg_t_icon_display_timer == 0 && !player_state.dmg_t_icon_is_locked_out {
             player_state.dmg_t_icon_display_timer = READINESS_ICON_DURATION;
             t_triggered_this_frame = true;
@@ -552,14 +539,13 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                entry_id < 8 && !READINESS_FLASH_OCCURRED[entry_id] {
                 FighterUtil::flash_eye_info(boma);
                 READINESS_FLASH_OCCURRED[entry_id] = true;
-                println!("[READINESS FLASH] Damage condition met - flashed eyes ONCE");
             }
         }
     }
 
-    // 3. Try to trigger Only Hits Condition Met (D icon)
+    // 3. Try to trigger Only Hits Condition Met (D icon - both Gastly and Haunter stages)
     if !ss_or_se_is_displaying_or_just_triggered && !t_triggered_this_frame {
-        if hits_condition_met &&
+        if hits_condition_met && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) &&
            player_state.dmg_d_icon_display_timer == 0 && !player_state.dmg_d_icon_is_locked_out {
             player_state.dmg_d_icon_display_timer = READINESS_ICON_DURATION;
             // Only flash during normal gameplay, not standby/entry - AND only if not already flashed
@@ -568,15 +554,14 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                entry_id < 8 && !READINESS_FLASH_OCCURRED[entry_id] {
                 FighterUtil::flash_eye_info(boma);
                 READINESS_FLASH_OCCURRED[entry_id] = true;
-                println!("[READINESS FLASH] Hits condition met - flashed eyes ONCE");
             }
         }
     }
 
     // --- Timer Decrement, Visibility Update, and Lockout/Next Icon Activation ---
 
-    // STG1_DMG_T
-    if player_state.dmg_t_icon_display_timer > 0 {
+    // STG1_DMG_T (show for both Gastly and Haunter stages)
+    if player_state.dmg_t_icon_display_timer > 0 && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) {
         ModelModule::set_mesh_visibility(boma, *STG1_DMG_T_ICON, true);
         player_state.dmg_t_icon_display_timer -= 1;
         if player_state.dmg_t_icon_display_timer == 0 {
@@ -586,8 +571,8 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         ModelModule::set_mesh_visibility(boma, *STG1_DMG_T_ICON, false);
     }
 
-    // STG1_DMG_D
-    if player_state.dmg_d_icon_display_timer > 0 {
+    // STG1_DMG_D (show for both Gastly and Haunter stages)
+    if player_state.dmg_d_icon_display_timer > 0 && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) {
         ModelModule::set_mesh_visibility(boma, *STG1_DMG_D_ICON, true);
         player_state.dmg_d_icon_display_timer -= 1;
         if player_state.dmg_d_icon_display_timer == 0 {
@@ -597,11 +582,11 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         ModelModule::set_mesh_visibility(boma, *STG1_DMG_D_ICON, false);
     }
 
-    // STG2_DMG_SS with Charge Bullet Hold effect
-    if player_state.dmg_ss_icon_display_timer > 0 {
+    // STG2_DMG_SS with Charge Bullet Hold effect (show for both Gastly and Haunter stages)
+    if player_state.dmg_ss_icon_display_timer > 0 && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) {
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SS_ICON, true);
 
-        // CRITICAL FIX: DON'T play evolve_ss sound here - let the persistent sound system handle it
+        //  DON'T play evolve_ss sound here - let the persistent sound system handle it
         // The persistent sound system will detect dmg_ss_icon_display_timer > 0 and play the sound
         
         // Spawn bayonetta_chargebullet_hold effect during SS icon visibility
@@ -626,7 +611,6 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                 EffectModule::set_rgb(boma, handle, 1.0, 1.0, 1.0);
                 EffectModule::set_alpha(boma, handle, 0.2);
                 LAST_SS_CHARGEBULLET_FRAME[entry_id] = player_state.current_frame;
-                println!("[CHARGE BULLET] Spawned hold effect during SS icon");
             }
         }
         
@@ -647,14 +631,14 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                    entry_id < 8 && !READINESS_FLASH_OCCURRED[entry_id] {
                     FighterUtil::flash_eye_info(boma);
                     READINESS_FLASH_OCCURRED[entry_id] = true;
-                    println!("[READINESS FLASH] SE icon triggered - flashed eyes ONCE");
                 }
             }
         }
     } else {
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SS_ICON, false);
-        // Clean up charge bullet hold effect when SS icon not visible
-        if player_state.dmg_se_icon_display_timer == 0 { // Only clean up if SE also not active
+        // Clean up charge bullet hold effect when SS icon not visible or wrong stage
+        if player_state.dmg_se_icon_display_timer == 0 || 
+           (player_state.stage != EvolutionStage::Gastly && player_state.stage != EvolutionStage::Haunter) {
             EffectModule::kill_kind(boma, Hash40::new("bayonetta_chargebullet_hold"), false, true);
         }
     }
@@ -663,8 +647,8 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
     static mut SE_CHARGEBULLET_START_SPAWNED: [bool; 8] = [false; 8];
     static mut LAST_SE_CHARGEBULLET_FRAME: [i32; 8] = [-30; 8];
     
-    // STG2_DMG_SE with both Charge Bullet effects
-    if player_state.dmg_se_icon_display_timer > 0 {
+    // STG2_DMG_SE with both Charge Bullet effects (show for both Gastly and Haunter stages)
+    if player_state.dmg_se_icon_display_timer > 0 && (player_state.stage == EvolutionStage::Gastly || player_state.stage == EvolutionStage::Haunter) {
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SE_ICON, true);
         
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
@@ -672,9 +656,8 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         if entry_id < 8 {
             // Spawn start effect only once when SE icon first becomes visible
             if player_state.dmg_se_icon_display_timer == READINESS_ICON_DURATION && !SE_CHARGEBULLET_START_SPAWNED[entry_id] {
-                // CRITICAL FIX: Play evolve_se sound when SE icon appears (NOT through persistent system)
+                //  Play evolve_se sound when SE icon appears (NOT through persistent system)
                 crate::gastly::persist_sfx::play_evolve_se_sound(boma);
-                println!("[EVOLVE SOUND] Played evolve_se when SE icon appeared");
                 
                 let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
                 let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
@@ -691,7 +674,6 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                 
                 if start_handle != u64::MAX as u32 && start_handle != 0 {
                     SE_CHARGEBULLET_START_SPAWNED[entry_id] = true;
-                    println!("[CHARGE BULLET] Spawned start effect for SE icon");
                 }
             }
             
@@ -731,20 +713,21 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
                 SE_CHARGEBULLET_START_SPAWNED[entry_id] = false;
             }
             
-            // CRITICAL FIX: Evolution will be triggered in the next call to handle_evolution_process
+            //  Evolution will be triggered in the next call to handle_evolution_process
             // The persistent sound system will detect is_evolving and start the evolving sound
-            println!("[CHARGE BULLET] SE icon ended - evolution will trigger next frame");
         }
     } else {
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SE_ICON, false);
         
-        // Clean up charge bullet effects when SE icon not visible
+        // Clean up charge bullet effects when SE icon not visible or wrong stage
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
         if entry_id < 8 {
-            // Only clean up if SS also not active
-            if player_state.dmg_ss_icon_display_timer == 0 {
+            // Clean up if SS also not active, or if we're not in valid stage
+            if player_state.dmg_ss_icon_display_timer == 0 || 
+               (player_state.stage != EvolutionStage::Gastly && player_state.stage != EvolutionStage::Haunter) {
                 EffectModule::kill_kind(boma, Hash40::new("bayonetta_chargebullet_hold"), false, true);
             }
+            // Always clean up start effect when SE not visible or wrong stage
             EffectModule::kill_kind(boma, Hash40::new("bayonetta_chargebullet_start"), false, true);
             SE_CHARGEBULLET_START_SPAWNED[entry_id] = false;
         }
@@ -766,13 +749,11 @@ unsafe fn handle_evolution_readiness_icons(boma: *mut BattleObjectModuleAccessor
         if !prev_any_condition && (damage_condition_met || hits_condition_met) && !FIRST_CONDITION_PLAYED[entry_id] {
             crate::gastly::persist_sfx::play_condition_sound(boma, 1);
             FIRST_CONDITION_PLAYED[entry_id] = true;
-            println!("[EVOLVE SOUND] Played evolve_condition_1 - first condition met");
         }
         
         // Second condition met (transition from 1 to 2 conditions)
         if !prev_both_conditions && both_conditions_met && FIRST_CONDITION_PLAYED[entry_id] {
             crate::gastly::persist_sfx::play_condition_sound(boma, 2);
-            println!("[EVOLVE SOUND] Played evolve_condition_2 - second condition met");
         }
         
         // Reset flags when conditions are no longer met (evolution occurred or reset)
@@ -834,7 +815,6 @@ unsafe fn spawn_shiny_effect(
         WorkModule::set_flag(boma, true, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_SHINY_EFFECT_ACTIVE);
         WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_SHINY_EFFECT_TIMER);
         
-        println!("[SHINY] Spawned shiny effect - Sound: {}, Visual: {}", sparkle_handle, effect_handle);
     }
 }
 
@@ -859,7 +839,6 @@ unsafe fn handle_shiny_effects(
         
         if should_trigger && status_just_changed {
             spawn_shiny_effect(boma, player_state, current_frame);
-            println!("[SHINY] Triggered shiny effect for Gastly on ENTRY");
         }
         
         if entry_id < 8 {
@@ -879,7 +858,6 @@ unsafe fn handle_shiny_effects(
             
             // Always trigger shiny effect on rebirth, regardless of pokecenter
             spawn_shiny_effect(boma, player_state, current_frame);
-            println!("[SHINY] Triggered delayed shiny effect for {:?} stage", player_state.stage);
             
             player_state.shiny_effect_pending = false;
             player_state.shiny_effect_delay_timer = -1;
@@ -895,7 +873,6 @@ unsafe fn handle_shiny_effects(
         if new_timer >= 90.0 {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_SHINY_EFFECT_ACTIVE);
             EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_happy_light"), false, true);
-            println!("[SHINY] Shiny effect ended after 90 frames");
         }
     }
 }
@@ -936,8 +913,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             let mut states_map_writer = FIGHTER_STATES.write();
             if let Some(player_state) = states_map_writer.get_mut(&my_entry_id_u32) {
                 if player_state.stage != crate::gastly::player_state::EvolutionStage::Gastly {
-                    println!("[TRAINING RESET] ★ CALLBACK RESET DETECTED ★ forcing {:?} -> Gastly for c{:02}", 
-                            player_state.stage, color_id);
                     
                     player_state.stage = crate::gastly::player_state::EvolutionStage::Gastly;
                     player_state.evolution_target_stage = crate::gastly::player_state::EvolutionStage::Gastly;
@@ -951,7 +926,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                     crate::gastly::visuals::update_body_and_unique_parts_visibility(boma, crate::gastly::player_state::EvolutionStage::Gastly);
                     crate::gastly::visuals::set_active_eye_mesh(boma, player_state, None);
                     
-                    println!("[TRAINING RESET] Applied visual reset to Gastly for marked slot");
                 }
             }
         }
@@ -987,14 +961,11 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             // Reset first access flag when training reset detected (but not during results)
             if damage_reset_detected {
                 FIRST_ACCESS_THIS_BOOT[entry_idx] = false;
-                println!("[FIRST ACCESS] Training reset detected for c{:02} - damage: {:.1} -> {:.1}", color_id, LAST_DAMAGE_SEEN[entry_idx], current_damage);
             } else if is_results_screen {
-                println!("[FIRST ACCESS] Skipping reset during results screen - preserving stage");
             }
             
             // On very first access OR first access after training reset, force Gastly
             if !FIRST_ACCESS_THIS_BOOT[entry_idx] {
-                println!("[FIRST ACCESS] ★ FIRST HASHMAP ACCESS ★ for c{:02} - forcing Gastly", color_id);
                 
                 // Force create new Gastly state
                 let mut states_map_writer = FIGHTER_STATES.write();
@@ -1033,20 +1004,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         SoundModule::stop_se(boma, Hash40::new("se_purin_step_left_s"), 0);
         SoundModule::stop_se(boma, Hash40::new("se_purin_step_right_m"), 0);
         SoundModule::stop_se(boma, Hash40::new("se_purin_step_left_m"), 0);
-        
-        if GASTLY_AUDIO_DEBUG {
-            static mut LAST_CLEANUP_FRAME: [i32; 8] = [-60; 8];
-            let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-            
-            if entry_id < 8 {
-                let current_frame = {
-                    let states_map_reader = FIGHTER_STATES.read();
-                    states_map_reader.get(&(entry_id as u32))
-                        .map(|state| state.current_frame)
-                        .unwrap_or(0)
-                };
-            }
-        }
     }
 
     // First-frame detection for marked costumes
@@ -1064,7 +1021,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             if let Some(state) = states_map_reset.get_mut(&my_entry_id_u32) {
                 state.full_reset_on_respawn(boma);
                 state.stage = crate::gastly::player_state::EvolutionStage::Gastly;
-                println!("[FIRST FRAME] Forced Gastly reset for marked costume entry {}", my_entry_id_u32);
             }
         }
     }
@@ -1084,7 +1040,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
     let entry_id_usize = my_entry_id_u32 as usize; // Convert to usize for array indexing
 
     if entry_id_usize < 8 {
-        // FIXED RESET DETECTION - Only reset on actual training mode resets, NOT on death
+        // RESET DETECTION - Only reset on actual training mode resets, NOT on death
         let should_reset_pokecenter = 
             // Match start statuses (actual resets)
             (current_status_val == *FIGHTER_STATUS_KIND_STANDBY) ||
@@ -1094,24 +1050,30 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         
         if should_reset_pokecenter {
             if POKECENTER_HIGHEST_DAMAGE[entry_id_usize] > 50.0 { // Only log if we're actually resetting something
-                println!("[POKECENTER] RESET SESSION - was {:.1}%, played: {}, now resetting", 
-                        POKECENTER_HIGHEST_DAMAGE[entry_id_usize], POKECENTER_PLAYED[entry_id_usize]);
             }
             
             POKECENTER_HIGHEST_DAMAGE[entry_id_usize] = 0.0;
             POKECENTER_PLAYED[entry_id_usize] = false;  // ← KEY FIX: Reset the played flag
             POKECENTER_LAST_STATUS[entry_id_usize] = -1;
             
+            // Get current frame from player state
+            let current_frame = {
+                let states_map = FIGHTER_STATES.read();
+                if let Some(state) = states_map.get(&my_entry_id_u32) {
+                    state.current_frame
+                } else {
+                    0 // Fallback
+                }
+            };
+            
             // Call the existing reset function for damage/heal tracking
-            reset_all_match_tracking(entry_id_usize);
+            reset_all_match_tracking(entry_id_usize, current_frame);
         }
         
         // Track highest damage
         if current_damage > POKECENTER_HIGHEST_DAMAGE[entry_id_usize] {
             POKECENTER_HIGHEST_DAMAGE[entry_id_usize] = current_damage;
             if current_damage >= 90.0 {
-                println!("[POKECENTER DEBUG] Purin Entry {}: New highest damage: {:.1}%", 
-                        entry_id_usize, current_damage);
             }
         }
         
@@ -1122,8 +1084,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             RESET_DELAY_TIMER[entry_id_usize] += 1;
             
             if RESET_DELAY_TIMER[entry_id_usize] >= 300 { // 5 seconds after damage goes to 0
-                println!("[POKECENTER] Auto-reset PLAYED flag after damage returned to 0 - ready for next session");
-                POKECENTER_PLAYED[entry_id_usize] = false; // Only reset the played flag, keep highest damage
+                    POKECENTER_PLAYED[entry_id_usize] = false; // Only reset the played flag, keep highest damage
                 RESET_DELAY_TIMER[entry_id_usize] = 0;
             }
         } else {
@@ -1133,8 +1094,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         
         // Check for rebirth
         if current_status_val == *FIGHTER_STATUS_KIND_REBIRTH && POKECENTER_LAST_STATUS[entry_id_usize] != current_status_val {
-            println!("[POKECENTER DEBUG] Purin Entry {}: REBIRTH! Highest: {:.1}%, Current: {:.1}%, Played: {}", 
-                    entry_id_usize, POKECENTER_HIGHEST_DAMAGE[entry_id_usize], current_damage, POKECENTER_PLAYED[entry_id_usize]);
             
             if POKECENTER_HIGHEST_DAMAGE[entry_id_usize] >= 100.0 && !POKECENTER_PLAYED[entry_id_usize] {
                 let sfx_handle = SoundModule::play_se(
@@ -1146,10 +1105,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                 SoundModule::set_se_vol(boma, sfx_handle as i32, 3.0, 0);
                 POKECENTER_PLAYED[entry_id_usize] = true;
                 
-                println!("[POKECENTER] ★★★ PLAYED G_POKECENTER for Purin! Handle: {} ★★★", sfx_handle);
             } else {
-                println!("[POKECENTER] No sound - Highest: {:.1}%, Already played: {}", 
-                        POKECENTER_HIGHEST_DAMAGE[entry_id_usize], POKECENTER_PLAYED[entry_id_usize]);
             }
         }
         
@@ -1164,8 +1120,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         let player_state = states_map_writer.entry(my_entry_id_u32).or_insert_with(PlayerEvolutionState::new);
         player_state.is_shiny = detect_shiny_slot(boma);
         if player_state.is_shiny {
-            println!("[SHINY] Player {} detected as shiny!", my_entry_id_u32);
-        }
+            }
     } else {
         // For existing players, ensure shiny detection is set
         if let Some(player_state) = states_map_writer.get_mut(&my_entry_id_u32) {
@@ -1177,24 +1132,21 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
 
     let player_state = states_map_writer.entry(my_entry_id_u32).or_insert_with(PlayerEvolutionState::new);
 
-    // CRITICAL: Check for resets FIRST, before any other logic  
+    // Check for resets FIRST, before any other logic  
     let was_evolving_before_reset = player_state.is_evolving;
     reset_evolution_progress_on_match_start(boma, player_state);
     let was_reset_triggered = was_evolving_before_reset && !player_state.is_evolving;
 
     // Debug evolution state tracking
     if was_evolving_before_reset {
-        println!("[EVOLUTION DEBUG] Before reset - is_evolving: {}, timer: {}", was_evolving_before_reset, player_state.evolution_timer);
-        println!("[EVOLUTION DEBUG] After reset - is_evolving: {}, was_reset_triggered: {}", player_state.is_evolving, was_reset_triggered);
     }
 
     // Force cancel evolution if reset occurred while evolving
     if was_reset_triggered {
         player_state.cancel_evolution(fighter);
-        println!("[EVOLUTION CANCEL] Cancelled due to training reset");
     }
 
-    // CRITICAL: Check for new training session before any other logic
+    // Check for new training session before any other logic
     if detect_new_training_session_for_marked_costumes(boma, player_state, my_entry_id_u32) {
 
     // AGGRESSIVE: Force Gastly reset for marked costumes in early frames
@@ -1222,8 +1174,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                 
                 EARLY_RESET_APPLIED[entry_idx] = true;
                 
-                println!("[EARLY FRAME RESET] ★ FORCED GASTLY ★ for c{:02} at frame {} (was {:?})", 
-                        color_id, player_state.current_frame, player_state.stage);
                 
                 // Force visual update
                 crate::gastly::visuals::update_body_and_unique_parts_visibility(boma, crate::gastly::player_state::EvolutionStage::Gastly);
@@ -1273,16 +1223,12 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                     SPECIAL_AURA_SPAWNED[entry_id] = false;
                     LAST_SPECIAL_STATUS[entry_id] = current_status_val;
                     LAST_SPECIAL_MOTION[entry_id] = current_motion;
-                    println!("[SPECIAL AURA] Reset spawn flag - Status: {:#x}, Motion: {:#x}", 
-                            current_status_val, current_motion);
                 }
                 
                 // Always try to maintain aura during these states
                 if !SPECIAL_AURA_SPAWNED[entry_id] || 
                    (SPECIAL_AURA_HANDLE[entry_id] != 0 && !EffectModule::is_exist_effect(boma, SPECIAL_AURA_HANDLE[entry_id])) {
                     
-                    println!("[SPECIAL AURA] Force spawning Gastly aura for status: {:#x}, motion: {:#x}", 
-                            current_status_val, current_motion);
                     
                     // Clean up any existing aura first (both normal and special)
                     let stored_handle = WorkModule::get_int(boma, GASTLY_AURA_HANDLE_WORK_ID) as u32;
@@ -1303,13 +1249,12 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                         SPECIAL_AURA_HANDLE[entry_id] = handle;
                         SPECIAL_AURA_SPAWNED[entry_id] = true;
                         
-                        // CRITICAL: Set visibility and persistence flags
+                        // Set visibility and persistence flags
                         EffectModule::set_visible(boma, handle, true);
                         
                         // Set a flag to prevent normal aura system from interfering
                         WorkModule::set_flag(boma, true, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GASTLY_AURA_ACTIVE);
                         
-                        println!("[SPECIAL AURA] Successfully spawned persistent aura with handle: {}", handle);
                     }
                 }
                 
@@ -1328,7 +1273,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                         }
                     } else {
                         // Respawn if effect was killed during special states
-                        println!("[SPECIAL AURA] Special aura was killed - respawning");
                         let handle = crate::gastly::effects::spawn_gastly_aura_direct(boma);
                         if handle != 0 {
                             SPECIAL_AURA_HANDLE[entry_id] = handle;
@@ -1347,7 +1291,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                 if SPECIAL_AURA_HANDLE[entry_id] != 0 {
                     EffectModule::kill(boma, SPECIAL_AURA_HANDLE[entry_id], false, true);
                     SPECIAL_AURA_HANDLE[entry_id] = 0;
-                    println!("[SPECIAL AURA] Cleaned up special aura - returning to normal system");
                 }
                 SPECIAL_AURA_SPAWNED[entry_id] = false;
                 
@@ -1368,7 +1311,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
     
     let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
     
-    // CRITICAL FIX: Track when we're in background-setting animations
+    //  Track when we're in background-setting animations
     let current_motion = MotionModule::motion_kind(boma);
     let is_background_setting_animation = current_motion == smash::hash40("final_start_r") ||
                                          current_motion == smash::hash40("final_start_l") ||
@@ -1380,12 +1323,12 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
        current_status == 0x1E8 ||  // FINAL_WAIT  
        current_status == 0x1E9 {   // FINAL_END
         
-        // FIXED: Only kill specific aura effects, NOT screen effects
+        //  Only kill specific aura effects, NOT screen effects
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura"), false, true);
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura_charge"), false, true);
         
-        // CRITICAL: DO NOT kill screen effects during background-setting animations
+        // DO NOT kill screen effects during background-setting animations
         if !is_background_setting_animation {
             // Only kill default background if we're not in the process of setting a custom one
             EffectModule::kill_kind(boma, Hash40::new("bg_purin_final"), false, true);
@@ -1393,19 +1336,16 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         }
         
         if entry_id < 8 && current_status == 0x1E0 {
-            println!("[AURA KILL] Killed final aura effects during FINAL status (protected backgrounds)");
         }
     }
         
-    // FIXED: Only activate special forms during FINAL status (0x1E0), not FINAL_START
+    //  Only activate special forms during FINAL status (0x1E0), not FINAL_START
     if current_status == 0x1E0 && // FINAL status only
        is_final_smash_flag && 
        !player_state.is_in_final_smash_form && 
        player_state.stage == EvolutionStage::Gengar {
         
         if player_state.mega_gengar_form_active || player_state.giga_gengar_form_active {
-            println!("[FIXED FS] Activating special form during FINAL status - Mega: {}, Giga: {}", 
-                    player_state.mega_gengar_form_active, player_state.giga_gengar_form_active);
             
             // Kill aura during activation - BUT NOT BACKGROUNDS
             EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
@@ -1420,7 +1360,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
                 ModelModule::set_mesh_visibility(boma, *eye_hash, false);
             }
             
-            // CRITICAL: Hide Gastly body during special forms
+            // Hide Gastly body during special forms
             ModelModule::set_mesh_visibility(boma, *GASTLY_BODY, false);
             
             // Show appropriate special form
@@ -1431,7 +1371,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             }
             
             player_state.is_in_final_smash_form = true;
-            println!("[AURA KILL] Killed aura during special form activation (preserved background)");
         }
     }
     
@@ -1441,9 +1380,8 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura"), false, true);
     }
     
-    // FIXED: Specific handling for FINAL_END status to prevent Gastly body stacking
+    //  Specific handling for FINAL_END status to prevent Gastly body stacking
     if current_status == 0x1E9 { // FINAL_END
-        println!("[FIXED FS] FINAL_END status detected - preventing Gastly body stacking");
         
         // AGGRESSIVELY hide Gastly body during FINAL_END
         ModelModule::set_mesh_visibility(boma, *GASTLY_BODY, false);
@@ -1477,7 +1415,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
     
     // CLEANUP: When final smash flag goes false, restore normal appearance
     if !is_final_smash_flag && player_state.is_in_final_smash_form {
-        println!("[FIXED FS] Final smash flag went false - forcing cleanup!");
         
         // Kill any remaining aura effects
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
@@ -1495,7 +1432,6 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
         ModelModule::set_mesh_visibility(boma, *GENGAR_IRIS, true);
         ModelModule::set_mesh_visibility(boma, *GENGAR_EYE_N, true);
         
-        println!("[FIXED FS] Cleanup complete - restored normal Gengar");
     }
 }
 
@@ -1504,7 +1440,7 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
     let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
     if entry_id >= 8 { return; }
     
-    // FIXED: Always run cleanup for ALL stages (not just Gastly)
+    //  Always run cleanup for ALL stages (not just Gastly)
     // This ensures the grab effect gets killed even if you evolve while grabbing
     
     let current_status = StatusModule::status_kind(boma);
@@ -1521,8 +1457,6 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         
         if should_kill {
             EffectModule::kill_kind(boma, Hash40::new("ridley_grabbing_catch"), false, true);
-            println!("[GRAB CLEANUP] Killed grab effect - transition from {} to {}", 
-                    last_status, current_status);
         }
     }
     
@@ -1544,25 +1478,29 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
 
     let current_total_damage_on_self = DamageModule::damage(boma, 0);
 
-    // FIXED: Handle training mode fixed damage properly
+    //  Handle training mode fixed damage properly
     static mut LAST_TRAINING_DAMAGE: [f32; 8] = [0.0; 8];
 
-    // FIXED: Handle training mode damage detection properly
+    //  Handle training mode damage detection properly
     let entry_idx = my_entry_id_u32 as usize;
     if entry_idx < 8 {
         // Debug training damage detection
         if player_state.current_frame % 60 == 0 {
-            println!("[TRAINING DEBUG] Current: {:.1}, Last: {:.1}, Progress: {:.1}", 
-                    current_total_damage_on_self, LAST_TRAINING_DAMAGE[entry_idx], player_state.damage_received_this_stage);
         }
         
-        // FIXED: Always track current damage, both increases AND decreases
+        //  Track incremental damage taken during current evolution stage
         if !player_state.is_evolving {
-            let old_progress = player_state.damage_received_this_stage;
-            player_state.damage_received_this_stage = current_total_damage_on_self;
+            let damage_since_stage_start = current_total_damage_on_self - player_state.previous_total_damage;
             
-            if (current_total_damage_on_self - old_progress).abs() > 0.1 {
-                println!("[TRAINING DAMAGE] Updated damage progress: {:.1} -> {:.1}%", old_progress, current_total_damage_on_self);
+            // Only count positive damage increases (ignore healing/resets)
+            if damage_since_stage_start > 0.0 {
+                player_state.damage_received_this_stage += damage_since_stage_start;
+                player_state.previous_total_damage = current_total_damage_on_self;
+            }
+            // Handle damage resets (training mode) by resetting our tracking
+            else if current_total_damage_on_self < player_state.previous_total_damage * 0.5 {
+                player_state.damage_received_this_stage = 0.0;
+                player_state.previous_total_damage = current_total_damage_on_self;
             }
         }
         
@@ -1589,21 +1527,17 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         let status_suggests_reset = current_status == *FIGHTER_STATUS_KIND_STANDBY || 
                                    current_status == *FIGHTER_STATUS_KIND_ENTRY;
         
-        let should_reset_hits = (damage_reset_detected || frame_reset_detected || status_suggests_reset) && 
+        //  Only reset on damage/frame resets, not status alone (status check was too aggressive)
+        let should_reset_hits = (damage_reset_detected || frame_reset_detected) && 
                                player_state.hits_landed_this_stage > 0;
         
         if should_reset_hits {
-            println!("[HIT RESET] ★ FORCED HIT RESET ★ Entry {}: {} -> 0 (damage:{:.1}->{:.1}, frame_reset:{}, status_reset:{})", 
-                    entry_idx, player_state.hits_landed_this_stage, LAST_TRAINING_DAMAGE[entry_idx], current_damage, 
-                    frame_reset_detected, status_suggests_reset);
             player_state.hits_landed_this_stage = 0;
             LAST_HIT_RESET_FRAME[entry_idx] = current_frame;
         }
         
         // Debug hit tracking changes
         if player_state.hits_landed_this_stage != LAST_HIT_COUNT[entry_idx] {
-            println!("[HIT DEBUG] Entry {} hits changed: {} -> {}", 
-                    entry_idx, LAST_HIT_COUNT[entry_idx], player_state.hits_landed_this_stage);
             LAST_HIT_COUNT[entry_idx] = player_state.hits_landed_this_stage;
         }
     }
@@ -1678,30 +1612,14 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         // Clean up UI state on death
         reset_ui_state_on_death(my_entry_id_u32);
         
-        // Handle weakened state during death/respawn
-        let current_damage = DamageModule::damage(boma, 0);
-        if current_damage >= 150.0 {
-            // Force re-spawn weakened effect if damage is still high
-            let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
-            let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
-            
-            let handle = EffectModule::req_follow(
-                boma,
-                Hash40::new("rosetta_tico_weak"),
-                Hash40::new("body"),
-                &position_offset,
-                &rotation_vector,
-                1.0,
-                true, 0x40000, 0, -1, 0, 0, false, false
-            ) as u32;
-            
-            if handle != u64::MAX as u32 && handle != 0 {
-                println!("[WEAKENED DEATH] Re-spawned weakened effect during death/respawn with damage: {:.1}", current_damage);
+        // Clean up weakened effect during death/respawn - let the visuals.rs system handle respawning
+        EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_weak"), false, true);
+        
+        // Reset weakened state tracking so visuals.rs can properly handle respawn
+        if my_entry_id_u32 < 8 {
+            unsafe {
+                crate::gastly::visuals::emergency_cleanup_weakened(my_entry_id_u32);
             }
-        } else {
-            // Clean up if damage is low
-            EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_weak"), false, true);
-            println!("[WEAKENED DEATH] Cleaned up weakened effect during death/respawn");
         }
         
         // End of weakened state cleanup
@@ -1714,7 +1632,7 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         }
 
         deactivate_all_pos_sensitive_icons(boma, player_state);
-        // CRITICAL: Force complete state reset on death/rebirth
+        // Force complete state reset on death/rebirth
         player_state.stage = EvolutionStage::Gastly;
         player_state.evolution_target_stage = EvolutionStage::Gastly;
         player_state.is_evolving = false;
@@ -1729,7 +1647,6 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         // Call the reset function after manual reset
         player_state.full_reset_on_respawn(boma);
         
-        println!("[DEATH RESET] Complete evolution progress reset for entry {}", my_entry_id_u32);
 
         ModelModule::set_mesh_visibility(boma, *LINKING_CORD_ICON, false);
         ModelModule::set_mesh_visibility(boma, *EVERSTONE_ICON, false);
@@ -1781,7 +1698,6 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         
         // Cancel evolution if final smash is actually used
         if is_using_final_smash {
-            println!("[EVOLUTION] Final smash used during evolution - cancelling evolution!");
             player_state.cancel_evolution(fighter);
             // Don't return here - let the rest of the frame continue processing
         }
@@ -1792,10 +1708,10 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
     // Evolution process comes AFTER readiness icons
     handle_evolution_process(fighter, player_state);
 
-    // CRITICAL: Handle persistent sounds AFTER evolution process but BEFORE effects
+    // Handle persistent sounds AFTER evolution process but BEFORE effects
     handle_persistent_looping_sounds(boma, player_state, fighter);
 
-    // IMPORTANT: Handle effects AFTER evolution process but BEFORE advance_evolution_animation
+    // Handle effects AFTER evolution process but BEFORE advance_evolution_animation
     // This ensures status change detection works properly
     handle_gastly_effects(boma, player_state, fighter);
 
@@ -1814,7 +1730,7 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         // Handle win_3 motion blink override first
         let is_win_3_blink = handle_win_3_blink(boma, player_state);
 
-        // FIXED: Check for down special blink override
+        //  Check for down special blink override
         let is_down_special_blink = if !is_win_3_blink {
             handle_down_special_blink(boma, player_state)
         } else {
@@ -1832,7 +1748,7 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
                 }
             }
             
-            // CRITICAL FIX: Only call set_active_eye_mesh if NOT in down special blink
+            //  Only call set_active_eye_mesh if NOT in down special blink
             set_active_eye_mesh(boma, player_state, expression_override);
         }
         // If is_down_special_blink is true, we DON'T call set_active_eye_mesh
@@ -1851,7 +1767,6 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         if new_timer >= 90.0 {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_SHINY_EFFECT_ACTIVE);
             EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_happy_light"), false, true);
-            println!("[SHINY] Shiny effect ended after 90 frames");
         }
     }
 
@@ -1860,20 +1775,17 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
         // Debug: Check if flag was just set this frame
         let sparkle_timer = WorkModule::get_float(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_SHINY_SPARKLE_TIMER);
         if sparkle_timer == 0.0 {
-            println!("[SHINY DEBUG] Sparkle timer just reset to 0 - flag was set this frame");
         }
         let sparkle_timer = WorkModule::get_float(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_SHINY_SPARKLE_TIMER);
         let new_sparkle_timer = sparkle_timer + 1.0;
         WorkModule::set_float(boma, new_sparkle_timer, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_SHINY_SPARKLE_TIMER);
         // Debug: Log timer progress every 30 frames
         if new_sparkle_timer as i32 % 30 == 0 {
-            println!("[SHINY DEBUG] Sparkle timer: {:.1}/102.0 frames", new_sparkle_timer);
         }
         
         if new_sparkle_timer >= 102.0 {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_SHINY_SPARKLE_ACTIVE);
             SoundModule::stop_se(boma, Hash40::new("shiny_sparkle"), 0);
-            println!("[SHINY] Shiny sparkle sound ended after 102 frames - STOPPING NOW");
         }
     }
 
@@ -1900,20 +1812,48 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
                 entry_id
             );
             
-            println!("[SHINY] Played delayed cry: {}", player_state.delayed_cry_sound);
             player_state.delayed_cry_sound = String::new();
         }
     }
 }
 
-unsafe fn reset_all_match_tracking(entry_id: usize) {
+unsafe fn reset_all_match_tracking(entry_id: usize, current_frame: i32) {
     if entry_id >= 8 { return; }
 
+    
+    // Check if we already have heal data stored - don't overwrite it
+    let (existing_heal_amount, existing_heal_frame) = HEAL_DETECTED[entry_id];
+    if existing_heal_amount != 0.0 && existing_heal_frame > 0 {
+        // Only reset damage tracker, preserve heal data
+        DAMAGE_TRACKER[entry_id] = (0.0, -200);
+        return;
+    }
+    
+    // Before resetting, check if this was a heal to 0%
+    let (last_damage, _) = DAMAGE_TRACKER[entry_id];
+    if last_damage >= 15.0 {
+        
+        // Use actual current frame to ensure proper timing
+        let heal_frame = current_frame;
+        
+        // Check for G_RESTORE: heal from >=35% to zero percent
+        if last_damage >= 35.0 {
+            HEAL_DETECTED[entry_id] = (-last_damage, heal_frame);
+        }
+        // Check for G_POTION: heal from <35% to zero percent  
+        else {
+            HEAL_DETECTED[entry_id] = (last_damage, heal_frame);
+        }
+        
+        // Don't reset HEAL_DETECTED in this case - let the sound system process it
+        DAMAGE_TRACKER[entry_id] = (0.0, -200);
+        return;
+    }
+    
     // Reset damage tracking (this prevents false heal detection)
     DAMAGE_TRACKER[entry_id] = (0.0, -200);
     HEAL_DETECTED[entry_id] = (0.0, -200);
     
-    // println!("[MATCH RESET] Reset damage tracking for entry {} to prevent false heals", entry_id);
 }
 
 unsafe fn detect_new_training_session_for_marked_costumes(
@@ -1962,11 +1902,9 @@ unsafe fn detect_new_training_session_for_marked_costumes(
 
     if (damage_reset || frame_reset) && !is_results_screen {
         
-        // FIXED: Always reset evolution tracking on session reset, regardless of stage
-        println!("[SESSION RESET] ★ TRAINING SESSION RESET ★ for c{:02} - stage:{:?}, damage:{:.1}->{:.1}, frame:{}->{}", 
-                color_id, player_state.stage, LAST_SESSION_DAMAGE[entry_idx], current_damage, LAST_SESSION_FRAME[entry_idx], current_frame);
+        //  Always reset evolution tracking on session reset, regardless of stage
         
-        // CRITICAL: Reset ALL evolution tracking on new session (regardless of current stage)
+        // Reset ALL evolution tracking on new session (regardless of current stage)
         player_state.damage_received_this_stage = 0.0;
         player_state.hits_landed_this_stage = 0;
         player_state.evo_attempt_delay_damage_taken_penalty = 0.0;
@@ -1983,8 +1921,6 @@ unsafe fn detect_new_training_session_for_marked_costumes(
             
             SESSION_RESET_COOLDOWN[entry_idx] = 300; // 5 second cooldown
             
-            println!("[SESSION RESET] ★ FORCED GASTLY RESET ★ for marked costume c{:02} - damage:{:.1}->{:.1}, frame:{}->{}", 
-                    color_id, LAST_SESSION_DAMAGE[entry_idx], current_damage, LAST_SESSION_FRAME[entry_idx], current_frame);
             
             LAST_SESSION_DAMAGE[entry_idx] = current_damage;
             LAST_SESSION_FRAME[entry_idx] = current_frame;
@@ -2007,6 +1943,7 @@ unsafe fn detect_healing_events(
     let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
     if entry_id >= 8 { return; }
     
+    
     let current_status = StatusModule::status_kind(boma);
     let current_frame = player_state.current_frame;
     let current_damage = DamageModule::damage(boma, 0);
@@ -2025,50 +1962,35 @@ unsafe fn detect_healing_events(
         return;
     }
     
-    // CRITICAL: Skip heal detection in early frames OR if damage is near zero
-    if current_frame < 300 || current_damage <= 5.0 {
-        // Just update tracker, don't detect heals
-        DAMAGE_TRACKER[entry_id] = (current_damage, current_frame);
-        return;
-    }
+    // No early frame skip - healing items can reset frame counter to 1
     
     let (last_damage, last_frame) = DAMAGE_TRACKER[entry_id];
     
-    // Only proceed if we have valid previous data from a reasonable time ago
-    if current_frame - last_frame >= 1 && last_frame > 100 && last_damage > 0.0 {
+    
+    // Only proceed if we have valid previous data (handle frame resets) OR if we detect a major damage drop
+    let major_damage_drop = current_damage == 0.0 && last_damage > 15.0;
+    if ((current_frame - last_frame >= 1 || current_frame < last_frame) && last_frame >= 0 && last_damage > 0.0) || major_damage_drop {
         let damage_change = current_damage - last_damage;
         
-        // ENHANCED: Stricter validation for legitimate heals
-        // Must be a reasonable heal amount and not from a match transition
+        // Basic validation for legitimate heals (not from match transitions)
         let is_reasonable_heal = damage_change <= -15.0 && 
-                                damage_change >= -200.0 && // Not too huge
-                                last_damage >= 15.0 &&      // Had meaningful damage before
+                                damage_change >= -200.0 && // Not too huge (max 200% heal)
                                 current_frame - last_frame < 600; // Within 10 seconds
         
         if !is_reasonable_heal {
-            if damage_change <= -15.0 {
-                println!("[HEAL DETECT] Ignoring heal - change: {:.1}, last_damage: {:.1}, frame_diff: {}", 
-                        damage_change, last_damage, current_frame - last_frame);
-            }
             DAMAGE_TRACKER[entry_id] = (current_damage, current_frame);
             return;
         }
         
-        // Check for G_RESTORE: heal to zero percent from having >=50% damage previously
-        if current_damage <= 0.1 && last_damage >= 50.0 {
+        // Check for G_RESTORE: heal from >=35% to zero percent (has priority over G_POTION)
+        if current_damage <= 0.1 && last_damage >= 35.0 {
             let heal_amount = last_damage;
             HEAL_DETECTED[entry_id] = (-heal_amount, current_frame); // Negative = g_restore
-            
-            println!("[HEAL DETECT] Entry {} G_RESTORE healed {:.1}% to zero at frame {} (damage: {:.1} -> {:.1})", 
-                    entry_id, heal_amount, current_frame, last_damage, current_damage);
         }
-        // Check for G_POTION: significant heal but not to zero from 50%+
-        else if damage_change <= -15.0 && !(current_damage <= 0.1 && last_damage >= 50.0) {
+        // Check for G_POTION: significant heal (≥15%) from any starting damage, EXCEPT when healing from ≥35% to 0%
+        else if damage_change <= -15.0 && !(current_damage <= 0.1 && last_damage >= 35.0) {
             let heal_amount = damage_change.abs();
             HEAL_DETECTED[entry_id] = (heal_amount, current_frame); // Positive = g_potion
-            
-            println!("[HEAL DETECT] Entry {} G_POTION healed {:.1}% at frame {} (damage: {:.1} -> {:.1})", 
-                    entry_id, heal_amount, current_frame, last_damage, current_damage);
         }
     }
     
@@ -2097,7 +2019,7 @@ unsafe fn handle_persistent_looping_sounds(
     LAST_EVOLUTION_STATE[entry_id] = player_state.is_evolving;
     
     // ===== EVOLVING SOUND (HIGHEST PRIORITY) =====
-    // CRITICAL FIX: Update timer regardless of is_evolving state
+    //  Update timer regardless of is_evolving state
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_EVOLVING_ACTIVE) {
         // Always update timer when sound is active, regardless of evolution state
         let timer = WorkModule::get_float(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVING_TIMER);
@@ -2108,14 +2030,13 @@ unsafe fn handle_persistent_looping_sounds(
         if new_timer >= 459.0 {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_EVOLVING_ACTIVE);
             
-            // CRITICAL: Must manually stop the looping sound
+            // Must manually stop the looping sound
             if EVOLVING_SOUND_HANDLE[entry_id] != 0 {
                 SoundModule::stop_se_handle(boma, EVOLVING_SOUND_HANDLE[entry_id] as i32, 0);
                 EVOLVING_SOUND_HANDLE[entry_id] = 0;
             }
             SoundModule::stop_se(boma, Hash40::new("evolving"), 0);
             
-            println!("[SOUND FIX] 🎶 Manually stopped evolving sound at {} frames", new_timer);
         }
     }
     
@@ -2129,7 +2050,6 @@ unsafe fn handle_persistent_looping_sounds(
                     EVOLVE_SS_SOUND_HANDLE[entry_id] = 0;
                 }
                 SoundModule::stop_se(boma, Hash40::new("evolve_ss"), 0);
-                println!("[SOUND FIX] 🛑 IMMEDIATELY stopped evolve_ss when evolution began");
             }
             
             // Start evolving sound ONCE per evolution
@@ -2148,7 +2068,6 @@ unsafe fn handle_persistent_looping_sounds(
             EVOLVING_SOUND_HANDLE[entry_id] = sfx_handle;
             SoundModule::set_se_vol(boma, sfx_handle as i32, 1.5, 0);
             
-            println!("[SOUND FIX] 🎵 Started evolving sound with loop=true (manual stop at 459) - Handle: {}", sfx_handle);
         }
     } else {
         // Only force stop if evolution was cancelled (not completed)
@@ -2162,7 +2081,6 @@ unsafe fn handle_persistent_looping_sounds(
             }
             SoundModule::stop_se(boma, Hash40::new("evolving"), 0);
             
-            println!("[SOUND FIX] 🏁 Stopped evolving sound (cancelled)");
         }
     }
     
@@ -2188,11 +2106,8 @@ unsafe fn handle_persistent_looping_sounds(
             
             EVOLVE_SS_SOUND_HANDLE[entry_id] = sfx_handle;
             SoundModule::set_se_vol(boma, sfx_handle as i32, 1.8, 0);
-            println!("[SOUND FIX] 🎵 Started evolve_ss sound - NO RESTARTS");
         }
-        
-        // REMOVED: No jump motion restart logic - let sound play uninterrupted
-        
+                
         // Update timer
         let timer = WorkModule::get_float(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVE_SS_TIMER);
         WorkModule::set_float(boma, timer + 1.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVE_SS_TIMER);
@@ -2209,7 +2124,6 @@ unsafe fn handle_persistent_looping_sounds(
             SoundModule::stop_se(boma, Hash40::new("evolve_ss"), 0);
             
             let reason = if player_state.is_evolving { "evolution started" } else { "icons ended" };
-            println!("[SOUND FIX] 🛑 Stopped evolve_ss ({})", reason);
         }
     }
     
@@ -2231,9 +2145,7 @@ unsafe fn handle_persistent_looping_sounds(
             
             SHADOWBALL_CHARGE_HANDLE[entry_id] = sfx_handle;
             SoundModule::set_se_vol(boma, sfx_handle as i32, 1.0, 0);
-            println!("[SOUND FIX] Started shadowball charge - NO RESTARTS");
         }
-        // REMOVED: No jump motion restart logic
     } else {
         if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_SHADOWBALL_CHARGE_ACTIVE) {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_SHADOWBALL_CHARGE_ACTIVE);
@@ -2243,7 +2155,6 @@ unsafe fn handle_persistent_looping_sounds(
                 SHADOWBALL_CHARGE_HANDLE[entry_id] = 0;
             }
             SoundModule::stop_se(boma, Hash40::new("g_shadowball_charge"), 0);
-            println!("[SOUND FIX] Stopped shadowball charge");
         }
     }
     
@@ -2251,8 +2162,6 @@ unsafe fn handle_persistent_looping_sounds(
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_EVOLVING_ACTIVE) {
         let evolving_timer = WorkModule::get_float(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_EVOLVING_TIMER);
         if player_state.current_frame % 120 == 0 { // Reduced frequency
-            println!("[🎵 SOUND] Entry {}: evolving sound progress {:.1}/459 frames (evo_timer: {}, is_evolving: {})", 
-                    entry_id, evolving_timer, player_state.evolution_timer, player_state.is_evolving);
         }
     }
     // ===== G_SHADOWBALL SOUND (when mewtwo_shadowball effect is visible) =====
@@ -2280,13 +2189,11 @@ unsafe fn handle_persistent_looping_sounds(
             ) as u32;
             
             SoundModule::set_se_vol(boma, sfx_handle as i32, 2.5, 0);
-            println!("[SOUND FIX] Started g_shadowball sound when mewtwo effect visible");
         }
     } else {
         if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_SHADOWBALL_ACTIVE) {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_SHADOWBALL_ACTIVE);
             SoundModule::stop_se(boma, Hash40::new("g_shadowball"), 0);
-            println!("[SOUND FIX] Stopped g_shadowball sound when mewtwo effect hidden");
         }
     }
 
@@ -2306,7 +2213,6 @@ unsafe fn handle_persistent_looping_sounds(
     // Track if player went through turn status
     if current_status == PURIN_SPECIAL_N_TURN {
         HAD_TURN_STATUS[entry_id] = true;
-        println!("[SPECIAL N] Player {} went through turn status - will skip release sounds", entry_id);
     }
     // 1. SPECIAL_N_CHARGE_MAX sound when entering HOLD_MAX status
     if current_status == PURIN_SPECIAL_N_HOLD_MAX && status_just_changed {
@@ -2321,7 +2227,6 @@ unsafe fn handle_persistent_looping_sounds(
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, sfx_handle as i32, 0.7, 0);
-        println!("[SPECIAL N] Played special_n_charge_max sound");
     }
     
     // 2. SPECIAL_N_RELEASE sounds when entering roll/roll_air status
@@ -2363,7 +2268,6 @@ unsafe fn handle_persistent_looping_sounds(
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, sfx_handle as i32, 0.6, 0);
-            println!("[SPECIAL N] Played special_n_charge_max_release sound (shadowball active)");
         } else {
             // Player did NOT reach hold max, use regular release sound
             let sfx_handle = SoundModule::play_se(
@@ -2374,14 +2278,10 @@ unsafe fn handle_persistent_looping_sounds(
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, sfx_handle as i32, 0.3, 0);
-            println!("[SPECIAL N] Played special_n_regular_release sound (shadowball active)");
         }
     } else if is_roll_status && status_just_changed && HAD_TURN_STATUS[entry_id] {
-        println!("[SPECIAL N] Skipped release sound - player went through turn status");
     } else if is_roll_status && status_just_changed && is_roll_to_roll_transition {
-        println!("[SPECIAL N] Skipped release sound - roll to roll_air transition");
     } else if is_roll_status && status_just_changed && !has_shadowball_effect_for_air {
-        println!("[SPECIAL N] Skipped release sound - main model visible (no shadowball effect)");
     }
     
     // Reset flags when completely out of special N sequence
@@ -2395,7 +2295,6 @@ unsafe fn handle_persistent_looping_sounds(
     if !is_any_special_n_status && (REACHED_HOLD_MAX[entry_id] || HAD_TURN_STATUS[entry_id]) {
         REACHED_HOLD_MAX[entry_id] = false;
         HAD_TURN_STATUS[entry_id] = false;
-        println!("[SPECIAL N] Reset all flags - exited special N sequence");
     }
     
     // Update status tracking
@@ -2420,13 +2319,11 @@ unsafe fn handle_persistent_looping_sounds(
         if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE) {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE);
             SoundModule::stop_se(boma, Hash40::new("g_restore"), 0);
-            println!("[SOUND FIX] Stopped g_restore during excluded status {:#x}", current_status);
         }
         
         if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE) {
             WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE);
             SoundModule::stop_se(boma, Hash40::new("g_potion"), 0);
-            println!("[SOUND FIX] Stopped g_potion during excluded status {:#x}", current_status);
         }
         
         // Clear heal tracker
@@ -2437,11 +2334,13 @@ unsafe fn handle_persistent_looping_sounds(
         let (heal_amount, heal_frame) = HEAL_DETECTED[entry_id];
         let frames_since_heal = player_state.current_frame - heal_frame;
         
+        
         let is_g_restore = heal_amount < 0.0; // Negative = g_restore
         let actual_heal_amount = heal_amount.abs();
         
-        let has_recent_g_restore = is_g_restore && actual_heal_amount >= 50.0 && frames_since_heal <= 120 && frames_since_heal >= 0;
+        let has_recent_g_restore = is_g_restore && actual_heal_amount >= 35.0 && frames_since_heal <= 120 && frames_since_heal >= 0;
         let has_recent_g_potion = !is_g_restore && actual_heal_amount >= 15.0 && frames_since_heal <= 120 && frames_since_heal >= 0;
+        
         
         // G_RESTORE has priority over G_POTION
         if has_recent_g_restore {
@@ -2449,13 +2348,11 @@ unsafe fn handle_persistent_looping_sounds(
             if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE) {
                 WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE);
                 SoundModule::stop_se(boma, Hash40::new("g_potion"), 0);
-                println!("[SOUND FIX] Stopped g_potion for g_restore priority");
             }
             
             if !WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE) {
                 // STOP VANILLA HEAL SOUND FIRST
                 SoundModule::stop_se(boma, Hash40::new("se_common_lifeup"), 0);
-                println!("[SOUND FIX] Stopped vanilla heal sound for g_restore");
                 
                 WorkModule::set_flag(boma, true, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE);
                 WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_G_RESTORE_TIMER);
@@ -2469,7 +2366,6 @@ unsafe fn handle_persistent_looping_sounds(
                 ) as u32;
                 
                 SoundModule::set_se_vol(boma, sfx_handle as i32, 1.5, 0);
-                println!("[SOUND FIX] Started g_restore sound - fully healed from {:.1}% at frame {} (volume 1.5)", actual_heal_amount, heal_frame);
                 
                 // Clear the heal tracker since we've processed it
                 HEAL_DETECTED[entry_id] = (0.0, -200);
@@ -2480,7 +2376,6 @@ unsafe fn handle_persistent_looping_sounds(
             if !WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE) {
                 // STOP VANILLA HEAL SOUND FIRST
                 SoundModule::stop_se(boma, Hash40::new("se_common_lifeup"), 0);
-                println!("[SOUND FIX] Stopped vanilla heal sound for g_potion");
                 
                 WorkModule::set_flag(boma, true, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE);
                 WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_G_POTION_TIMER);
@@ -2494,7 +2389,6 @@ unsafe fn handle_persistent_looping_sounds(
                 ) as u32;
                 
                 SoundModule::set_se_vol(boma, sfx_handle as i32, 1.5, 0);
-                println!("[SOUND FIX] Started g_potion sound - healed {:.1}% at frame {} (volume 1.5)", actual_heal_amount, heal_frame);
                 
                 // Clear the heal tracker since we've processed it
                 HEAL_DETECTED[entry_id] = (0.0, -200);
@@ -2514,7 +2408,6 @@ unsafe fn handle_persistent_looping_sounds(
             if new_timer >= 105.0 {
                 WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE);
                 SoundModule::stop_se(boma, Hash40::new("g_restore"), 0);
-                println!("[SOUND FIX] g_restore auto-stopped at 105 frames");
             }
         }
         
@@ -2531,7 +2424,6 @@ unsafe fn handle_persistent_looping_sounds(
             if new_timer >= 50.0 {
                 WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE);
                 SoundModule::stop_se(boma, Hash40::new("g_potion"), 0);
-                println!("[SOUND FIX] g_potion auto-stopped at 50 frames");
             }
         }
         
@@ -2580,7 +2472,6 @@ unsafe fn handle_persistent_looping_sounds(
                     FURAFURA_SOUND_ACTIVE[entry_id] = true;
                     FURAFURA_START_FRAME[entry_id] = current_frame;
                     
-                    println!("[SOUND FIX] Started g_furafura for BIND (102 frame duration)");
                 }
                 
                 // Check if 102 frames have elapsed for BIND
@@ -2588,7 +2479,6 @@ unsafe fn handle_persistent_looping_sounds(
                 (current_frame - FURAFURA_START_FRAME[entry_id] >= 102) {
                     SoundModule::stop_se(boma, Hash40::new("g_furafura"), 0);
                     FURAFURA_SOUND_ACTIVE[entry_id] = false;
-                    println!("[SOUND FIX] Stopped g_furafura after 102 frames for BIND");
                 }
                 
             } else if is_furafura_stand || is_furafura {
@@ -2611,7 +2501,6 @@ unsafe fn handle_persistent_looping_sounds(
                     FURAFURA_SOUND_ACTIVE[entry_id] = true;
                     FURAFURA_START_FRAME[entry_id] = current_frame;
                     
-                    println!("[SOUND FIX] Played g_furafura one-shot for FURAFURA status");
                 }
                 
             } else {
@@ -2619,7 +2508,6 @@ unsafe fn handle_persistent_looping_sounds(
                 if FURAFURA_SOUND_ACTIVE[entry_id] {
                     SoundModule::stop_se(boma, Hash40::new("g_furafura"), 0);
                     FURAFURA_SOUND_ACTIVE[entry_id] = false;
-                    println!("[SOUND FIX] Stopped g_furafura - exited status");
                 }
             }
             
@@ -2653,7 +2541,6 @@ unsafe fn handle_persistent_looping_sounds(
                 
                 G_GRAB_BURN_HANDLE[entry_id] = sfx_handle;
                 SoundModule::set_se_vol(boma, sfx_handle as i32, 1.8, 0);
-                println!("[SOUND FIX] Started g_grab_burn sound");
             }
         } else {
             if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_GRAB_BURN_ACTIVE) {
@@ -2664,7 +2551,6 @@ unsafe fn handle_persistent_looping_sounds(
                     G_GRAB_BURN_HANDLE[entry_id] = 0;
                 }
                 SoundModule::stop_se(boma, Hash40::new("g_grab_burn"), 0);
-                println!("[SOUND FIX] Stopped g_grab_burn");
             }
         }
         // ===== MEGASYMBOL SOUND (84 frames during final smash - once per FS) =====
@@ -2676,13 +2562,11 @@ unsafe fn handle_persistent_looping_sounds(
         // Reset flag when final smash starts
         if is_final_smash && !LAST_FS_FLAG[entry_id] {
             MEGASYMBOL_PLAYED_THIS_FS[entry_id] = false;
-            println!("[SOUND FIX] Final smash started - reset megasymbol flag");
         }
 
         // Reset flag when final smash ends
         if !is_final_smash && LAST_FS_FLAG[entry_id] {
             MEGASYMBOL_PLAYED_THIS_FS[entry_id] = false;
-            println!("[SOUND FIX] Final smash ended - reset megasymbol flag");
         }
 
         LAST_FS_FLAG[entry_id] = is_final_smash;
@@ -2703,7 +2587,6 @@ unsafe fn handle_persistent_looping_sounds(
                 MEGASYMBOL_HANDLE[entry_id] = sfx_handle;
                 SoundModule::set_se_vol(boma, sfx_handle as i32, 2.0, 0);
                 MEGASYMBOL_PLAYED_THIS_FS[entry_id] = true;
-                println!("[SOUND FIX] Started megasymbol sound - first time this FS");
             }
         }
 
@@ -2723,7 +2606,6 @@ if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_MEGASYMBOL_ACTI
         }
         SoundModule::stop_se(boma, Hash40::new("megasymbol"), 0);
         
-        println!("[SOUND FIX] Stopped megasymbol after 84 frames");
     }
 }
 
@@ -2737,7 +2619,6 @@ if !is_final_smash && WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_F
     }
     SoundModule::stop_se(boma, Hash40::new("megasymbol"), 0);
     
-    println!("[SOUND FIX] Stopped megasymbol - final smash ended early");
 }
     
 }
@@ -2755,13 +2636,8 @@ unsafe fn debug_sound_state_enhanced(boma: *mut BattleObjectModuleAccessor, play
     let is_jump_motion = current_motion == 0xe7f6e164a;
     
     if player_state.current_frame % 60 == 0 || is_jump_motion || (player_state.is_evolving && player_state.evolution_timer % 30 == 0) {
-        println!("[🎵 SOUND] Entry {}: evolving={} (flag:{}, timer:{:.1}/459), ss={} (timer:{:.1}), icons:SS={}/SE={}, evo_timer={}, motion={:#x}", 
-                entry_id, player_state.is_evolving, evolving_active, evolving_timer, 
-                ss_active, ss_timer, player_state.dmg_ss_icon_display_timer, 
-                player_state.dmg_se_icon_display_timer, player_state.evolution_timer, current_motion);
         
         if is_jump_motion {
-            println!("[🎵 SOUND] ⚠️ JUMP MOTION DETECTED - Sounds should be restarting!");
         }
     }
 }
@@ -2784,8 +2660,6 @@ unsafe fn reset_evolution_progress_on_match_start(
 
     // Debug reset detection
     if player_state.is_evolving {
-        println!("[RESET DEBUG] Entry {} - Status: {:#x}, Damage: {:.1}, Frame: {}, Evolving: {}", 
-                entry_id, current_status, current_damage, current_frame, player_state.is_evolving);
     }
 
     let should_reset = 
@@ -2800,13 +2674,11 @@ unsafe fn reset_evolution_progress_on_match_start(
         // Frame reset (new session) - tighter frame window
         (current_frame < 60 && LAST_RESET_FRAME[entry_idx] > 300) ||
         // ADDITIONAL: Direct damage reset to 0 from high values (training mode fix damage)
-        (current_damage <= 0.1 && LAST_RESET_DAMAGE[entry_idx] > 20.0) ||
-        // ADDITIONAL: Hit count accumulation without damage reset (training mode scenario)
-        (player_state.hits_landed_this_stage > 30 && current_damage <= 5.0);
+        (current_damage <= 0.1 && LAST_RESET_DAMAGE[entry_idx] > 20.0);
 
     if should_reset {
 
-        // CRITICAL: Cancel evolution if currently evolving
+        // Cancel evolution if currently evolving
         if player_state.is_evolving {
             player_state.is_evolving = false;
             player_state.linking_cord_active = false;
@@ -2817,12 +2689,9 @@ unsafe fn reset_evolution_progress_on_match_start(
             // Apply evolution cancellation penalty
             player_state.evo_attempt_delay_damage_taken_penalty += 15.0;
             
-            println!("[EVOLUTION RESET] Cancelled evolution due to training reset");
         }
-        println!("[EVOLUTION RESET] COMPLETE RESET for entry {} - Status: {:#x}, Damage: {:.1}, Frame: {}", 
-                entry_id, current_status, current_damage, current_frame);
 
-        // CRITICAL: Reset ALL evolution progress
+        // Reset ALL evolution progress
         player_state.damage_received_this_stage = 0.0;
         player_state.hits_landed_this_stage = 0;
         player_state.evo_attempt_delay_damage_taken_penalty = 0.0;
@@ -2837,8 +2706,6 @@ unsafe fn reset_evolution_progress_on_match_start(
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SS_ICON, false);
         ModelModule::set_mesh_visibility(boma, *STG2_DMG_SE_ICON, false);
 
-        println!("[EVOLUTION RESET] Reset complete - Damage: {:.1}, Hits: {}", 
-                player_state.damage_received_this_stage, player_state.hits_landed_this_stage);
     }
 
     // Update tracking
@@ -2874,7 +2741,6 @@ unsafe fn handle_timed_looping_sound(
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, sfx_handle as i32, volume, 0);
-        println!("[LOOPING SOUND] Started {} - Handle: {}", sound_name, sfx_handle);
     }
 }
 
@@ -2895,7 +2761,6 @@ unsafe fn handle_continuous_looping_sound(
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, sfx_handle as i32, volume, 0);
-        println!("[LOOPING SOUND] Started {} - Handle: {}", sound_name, sfx_handle);
     }
 }
 
@@ -2907,7 +2772,6 @@ unsafe fn stop_looping_sound(
     if WorkModule::is_flag(boma, flag_id) {
         WorkModule::set_flag(boma, false, flag_id);
         SoundModule::stop_se(boma, Hash40::new(sound_name), 0);
-        println!("[LOOPING SOUND] Stopped {}", sound_name);
     }
 }
 
@@ -2973,7 +2837,6 @@ unsafe fn handle_damage_based_sounds(
         // Stop g_restore if it's playing (as per your logic requirements)
         stop_looping_sound(boma, "g_restore", FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_RESTORE_ACTIVE);
         
-        println!("[DAMAGE SOUND] G_POTION triggered - healed {:.1}%", damage_change.abs());
     }
     
     // G_RESTORE: Heal to zero percent from having above 25% damage previously
@@ -2988,7 +2851,6 @@ unsafe fn handle_damage_based_sounds(
         // Stop g_potion if it's playing (as per your logic requirements)
         stop_looping_sound(boma, "g_potion", FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_G_POTION_ACTIVE);
         
-        println!("[DAMAGE SOUND] G_RESTORE triggered - fully healed from {:.1}%", previous_damage);
     }
     
     // Stop both sounds if no healing conditions are met
@@ -3018,7 +2880,7 @@ unsafe extern "C" fn gastly_early_frame_callback(fighter: &mut L2CFighterCommon)
     let my_entry_id_u32 = my_entry_id_i32 as u32;
     let current_status = StatusModule::status_kind(boma);
 
-    // CRITICAL: Early marked costume reset detection
+    // Early marked costume reset detection
     let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
     let is_marked_costume = if color_id < 256 {
         unsafe { crate::MARKED_COLORS[color_id] }
@@ -3054,8 +2916,6 @@ unsafe extern "C" fn gastly_early_frame_callback(fighter: &mut L2CFighterCommon)
             let mut states_map_writer = FIGHTER_STATES.write();
             if let Some(player_state) = states_map_writer.get_mut(&my_entry_id_u32) {
                 if player_state.stage != crate::gastly::player_state::EvolutionStage::Gastly {
-                    println!("[FRAME JUMP RESET] ★ DETECTED SESSION CHANGE ★ frame:{} -> {}, costume:c{:02}", 
-                            LAST_SEEN_FRAME[entry_idx], current_frame, color_id);
                     
                     // Force complete reset
                     player_state.full_reset_on_respawn(boma);
@@ -3094,7 +2954,6 @@ unsafe extern "C" fn gastly_early_frame_callback(fighter: &mut L2CFighterCommon)
             if let Some(state) = states_map_reset.get_mut(&my_entry_id_u32) {
                 state.full_reset_on_respawn(boma);
                 state.stage = crate::gastly::player_state::EvolutionStage::Gastly;
-                println!("[FIRST FRAME] Forced Gastly reset for marked costume entry {}", my_entry_id_u32);
             }
         }
     }
@@ -3124,9 +2983,6 @@ pub fn install() {
     crate::gastly::animation_hooks::install_animation_hooks();
     crate::gastly::effects::install_effects();
     crate::gastly::darkfx::install_dark_effects();
-    println!("[MOD] Dark effects installation called");
-    println!("[MOD] Sound system installation called");
-    println!("[MOD] ACMD sound overrides installation called");
 }
 
 // New function to install frame callbacks with costume filtering
@@ -3142,11 +2998,9 @@ pub fn install_frame_callbacks_with_costumes() {
     }
     
     if costume.is_empty() {
-        println!("[GASTLY CALLBACKS] No marked costumes found, skipping frame callback installation");
         return;
     }
     
-    println!("[GASTLY CALLBACKS] Installing frame callbacks for {} marked costumes: {:?}", costume.len(), costume);
     
     smashline::Agent::new("purin")
         .set_costume(costume.clone())
@@ -3174,11 +3028,9 @@ pub fn install_acmd_with_costumes() {
     }
     
     if costume.is_empty() {
-        println!("[GASTLY ACMD] No marked costumes found, skipping ACMD installation");
         return;
     }
     
-    println!("[GASTLY ACMD] Installing ACMD for {} marked costumes: {:?}", costume.len(), costume);
     
     // Install with costume filtering
     crate::gastly::sounds::install_sound_logic_with_costumes(&costume);

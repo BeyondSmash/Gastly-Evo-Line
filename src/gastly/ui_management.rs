@@ -49,7 +49,6 @@ pub unsafe fn update_battle_portrait_ui(
     // Store original UI hash if not already stored
     if ORIGINAL_UI_CHARA_HASH[entry_id_usize] == 0x0 {
         ORIGINAL_UI_CHARA_HASH[entry_id_usize] = the_csk_collection_api::get_ui_chara_from_entry_id(entry_id);
-        println!("[UI MANAGEMENT] Stored original UI hash for entry {}: {:#x}", entry_id, ORIGINAL_UI_CHARA_HASH[entry_id_usize]);
     }
     
     // Determine which UI to use based on evolution stage and status
@@ -84,9 +83,8 @@ pub unsafe fn update_battle_portrait_ui(
             owner_color as u8,
         );
         
-        println!("[UI MANAGEMENT] ★ Restored original Purin UI to preserve stock icon (hash: {:#x})", target_ui_hash);
         
-        // CRITICAL: The portraits will change via the layout DB entries we registered in lib.rs
+        // The portraits will change via the layout DB entries we registered in lib.rs
         // but the stock icon will remain as Purin since we're using ORIGINAL_UI_CHARA_HASH
         
         let stage_name = if player_state.is_evolving {
@@ -132,13 +130,11 @@ pub unsafe fn handle_cutin_effects(
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_HAUNTER_CUTIN_READY) {
         WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_HAUNTER_CUTIN_READY);
         trigger_evolution_cutin(fighter, "Haunter", entry_id as usize);
-        println!("[UI MANAGEMENT] ★ IMMEDIATE CUTIN ★ Triggered Haunter cutin from flag");
     }
     
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GENGAR_CUTIN_READY) {
         WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GENGAR_CUTIN_READY);
         trigger_evolution_cutin(fighter, "Gengar", entry_id as usize);
-        println!("[UI MANAGEMENT] ★ IMMEDIATE CUTIN ★ Triggered Gengar cutin from flag");
     }
 }
 
@@ -179,20 +175,17 @@ unsafe fn check_for_evolution_cry_cutins(
     // Reset evolution cutin flag when starting new evolution
     if player_state.is_evolving && CUTIN_PLAYED_THIS_EVOLUTION[entry_id] {
         CUTIN_PLAYED_THIS_EVOLUTION[entry_id] = false;
-        println!("[UI MANAGEMENT] Reset evolution cutin flag for entry {} - new evolution started", entry_id);
     }
 
     // Check for immediate evolution cutin flags
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_HAUNTER_CUTIN_READY) {
         WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_HAUNTER_CUTIN_READY);
         trigger_evolution_cutin(fighter, "Haunter", entry_id as usize);
-        println!("[UI MANAGEMENT] ★ IMMEDIATE CUTIN ★ Triggered Haunter cutin from flag");
     }
     
     if WorkModule::is_flag(boma, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GENGAR_CUTIN_READY) {
         WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GENGAR_CUTIN_READY);
         trigger_evolution_cutin(fighter, "Gengar", entry_id as usize);
-        println!("[UI MANAGEMENT] ★ IMMEDIATE CUTIN ★ Triggered Gengar cutin from flag");
     }
 }
 
@@ -232,7 +225,6 @@ unsafe fn check_for_final_smash_cutins(
     if !is_final_smash && (CUTIN_PLAYED_MEGA[entry_id] || CUTIN_PLAYED_GIGA[entry_id]) {
         CUTIN_PLAYED_MEGA[entry_id] = false;
         CUTIN_PLAYED_GIGA[entry_id] = false;
-        println!("[UI MANAGEMENT] Reset final smash cutin flags for entry {} - final smash ended", entry_id);
     }
 }
 
@@ -263,8 +255,6 @@ unsafe fn trigger_evolution_cutin(
     // Trigger cutin effect
     macros::FT_START_CUTIN(fighter);
     
-    println!("[UI MANAGEMENT] ★ CUTIN DEBUG ★ UI changed to: {:#x}, Color: {}, Entry: {}", 
-            cutin_ui_hash, owner_color, entry_id);
     
     // Schedule restoration of chara_4 UI after cutin (will happen in next frame via update_battle_portrait_ui)
 }
@@ -296,13 +286,10 @@ unsafe fn trigger_final_smash_cutin(
     // Trigger cutin effect
     macros::FT_START_CUTIN(fighter);
 
-    println!("[UI MANAGEMENT] ★ FINAL SMASH CUTIN ★ Triggered {} cutin for entry {} with chara_6 UI", 
-                form_name, entry_id);
     // Delay restoration to let cutin display
     static mut CUTIN_RESTORE_TIMER: [i32; 8] = [0; 8];
     CUTIN_RESTORE_TIMER[entry_id] = 120; // 2 second delay
     
-    println!("[UI MANAGEMENT] ★ FINAL SMASH CUTIN ★ Set restore timer for entry {}", entry_id);
 }
 
 /// Tracks cry sound playback for cutin timing
@@ -317,10 +304,8 @@ pub unsafe fn track_cry_sound_playback(
     
     if sound_hash.hash == smash::hash40("cry_haunter") {
         LAST_CRY_HAUNTER_FRAME[entry_id_usize] = current_frame;
-        println!("[UI MANAGEMENT] TRACKED cry_haunter sound at frame {} for entry {}", current_frame, entry_id);
     } else if sound_hash.hash == smash::hash40("cry_gengar") {
         LAST_CRY_GENGAR_FRAME[entry_id_usize] = current_frame;
-        println!("[UI MANAGEMENT] TRACKED cry_gengar sound at frame {} for entry {}", current_frame, entry_id);
     }
 }
 
@@ -357,13 +342,10 @@ pub unsafe fn reset_ui_state_on_death(entry_id: u32) {
                     owner_color as u8,
                 );
                 
-                println!("[UI MANAGEMENT] Restored original UI for entry {} on death (hash: {:#x})", 
-                        entry_id, ORIGINAL_UI_CHARA_HASH[entry_id_usize]);
             }
         }
     }
     
-    println!("[UI MANAGEMENT] Reset UI state for entry {} on death/respawn", entry_id);
 }
 
 /// Main UI management function called from main loop
@@ -373,7 +355,7 @@ pub unsafe fn handle_ui_management(
     fighter: &mut L2CFighterCommon,
     entry_id: u32
 ) {
-    // CRITICAL: Block UI changes for marked costumes during early frames
+    // Block UI changes for marked costumes during early frames
     let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
     let is_marked_costume = if color_id < 256 {
         crate::MARKED_COLORS[color_id]
@@ -384,7 +366,6 @@ pub unsafe fn handle_ui_management(
     if is_marked_costume && player_state.current_frame < 120 {
         // Force Gastly UI during early frames for marked costumes
         if player_state.stage != EvolutionStage::Gastly {
-            println!("[UI BLOCK] Blocking UI change for marked costume c{:02} during early frames", color_id);
             return;
         }
     }
@@ -417,12 +398,9 @@ pub unsafe fn handle_ui_management(
             owner_color as _,
         );
         
-        println!("[UI MANAGEMENT] ★ DIRECT CUTIN ★ Changed to chara_6: {:#x} for {}", 
-                cutin_ui_hash, evolution_name);
         
         // Trigger cutin effect  
         macros::FT_START_CUTIN(fighter);
         
-        println!("[UI MANAGEMENT] ★ DIRECT CUTIN ★ Triggered {} evolution cutin", evolution_name);
     }
 }

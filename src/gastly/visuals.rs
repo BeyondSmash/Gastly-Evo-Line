@@ -9,10 +9,10 @@ use crate::gastly::constants::*;
 // Import PlayerEvolutionState and related enums
 use crate::gastly::player_state::{PlayerEvolutionState, EvolutionStage, BlinkPhase};
 
-// COMPLETELY ISOLATED weakened state system
-static mut WEAKENED_SPAWNED: [bool; 8] = [false; 8];
-static mut WEAKENED_LAST_DAMAGE: [f32; 8] = [0.0; 8];
-static mut DEBUG_LAST_FRAME_CHECKED: [i32; 8] = [-1; 8];
+// Weakened effect work IDs (use WorkModule instead of static arrays)
+pub const WEAKENED_EFFECT_HANDLE_WORK_ID: i32 = 0x50000021;
+pub const WEAKENED_LAST_DAMAGE_WORK_ID: i32 = 0x50000022;
+pub const WEAKENED_LAST_SPAWN_FRAME_WORK_ID: i32 = 0x50000023;
 
 // Enhanced shadowball state enum with charge tracking
 #[derive(Debug, PartialEq)]
@@ -23,7 +23,7 @@ pub enum ShadowballState {
     ActiveWithHitbox,
     RegularRollout,
     ChargedRollout,
-    AirToGroundRollout, // NEW: Ground roll after insufficient air charge
+    AirToGroundRollout, //  Ground roll after insufficient air charge
     TransitionKeepModel,
     RegularRolloutWithHitbox,      // Visible rollout but hitbox active
     ChargedRolloutWithHitbox,      // Invisible rollout with hitbox active  
@@ -45,7 +45,7 @@ impl SimpleHitState {
     }
 }
 
-// NEW: Centralized function to check if Gastly body should be hidden
+//  Centralized function to check if Gastly body should be hidden
 unsafe fn should_force_hide_gastly_body(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) -> bool {
     // Only hide for Haunter and Gengar stages during final smash
     if player_state.stage != EvolutionStage::Haunter && player_state.stage != EvolutionStage::Gengar {
@@ -67,14 +67,14 @@ unsafe fn should_force_hide_gastly_body(boma: *mut BattleObjectModuleAccessor, p
     is_final_smash_flag || is_final_smash_form || is_final_animation
 }
 
-// NEW: Force hide Gastly body if conditions are met (call this after any mesh visibility setting)
+//  Force hide Gastly body if conditions are met (call this after any mesh visibility setting)
 unsafe fn enforce_gastly_body_hiding(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) {
     if should_force_hide_gastly_body(boma, player_state) {
         ModelModule::set_mesh_visibility(boma, *GASTLY_BODY, false);
     }
 }
 
-// NEW: Check for animations that should show gengar_tongue_normal for Gengar (non-FS modes)
+//  Check for animations that should show gengar_tongue_normal for Gengar (non-FS modes)
 unsafe fn should_show_gengar_tongue_normal(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) -> bool {
     // Only for Gengar stage and not in final smash forms
     if player_state.stage != EvolutionStage::Gengar || 
@@ -126,7 +126,7 @@ unsafe fn should_show_gengar_tongue_normal(boma: *mut BattleObjectModuleAccessor
     tongue_normal_animations.contains(&motion_hash.hash)
 }
 
-// NEW: Check for attack_air_lw animation with frame-specific tongue visibility
+//  Check for attack_air_lw animation with frame-specific tongue visibility
 unsafe fn should_show_tongue_for_attack_air_lw(boma: *mut BattleObjectModuleAccessor, _player_state: &PlayerEvolutionState) -> bool {
     let current_motion = MotionModule::motion_kind(boma);
     let motion_hash = Hash40 { hash: current_motion };
@@ -177,16 +177,14 @@ unsafe fn handle_evolving_tongue_visibility(
         // Show evolving tongue during frames 7-49 (same as normal tongue)
         if motion_frame >= 7.0 && motion_frame <= 49.0 {
             ModelModule::set_mesh_visibility(boma, *GASTLY_EVOLVING_TONGUE, true);
-            println!("[EVOLVING TONGUE] Showing gastly_evolvingtongue during attack_air_lw frames {:.1}", motion_frame);
-            return true;
+                        return true;
         }
     }
     
     // Check for catch animations (catch_attack, catch_wait) 
     if motion_hash.hash == smash::hash40("catch_attack") || motion_hash.hash == smash::hash40("catch_wait") {
         ModelModule::set_mesh_visibility(boma, *GASTLY_EVOLVING_TONGUE, true);
-        println!("[EVOLVING TONGUE] Showing gastly_evolvingtongue during catch animation");
-        return true;
+                return true;
     }
     
     false
@@ -211,7 +209,7 @@ pub unsafe fn update_body_and_unique_parts_visibility(boma: *mut BattleObjectMod
         return;
     }
     
-    // FIX: Don't interfere with shadowball hold statuses at all
+    // Don't interfere with shadowball hold statuses at all
     // Let set_active_eye_mesh handle all shadowball logic
     let is_shadowball_related_status = current_status == 0x1E1 ||    // SPECIAL_N_HOLD (ground/air)
                                        current_status == 0x1E2 ||    // SPECIAL_N_HOLD_MAX (ground/air)
@@ -339,7 +337,7 @@ pub unsafe fn detect_shadowball_hitbox_state(boma: *mut BattleObjectModuleAccess
         return ShadowballState::ChargingBelowThreshold;
     }
     
-    // NEW: Enhanced rollout detection with hitbox-based invisibility
+    //  Enhanced rollout detection with hitbox-based invisibility
     if is_shadowball_roll_status {
     let has_active_hitbox = is_rollout_hitbox_active(boma);
     
@@ -397,7 +395,7 @@ unsafe fn is_rollout_hitbox_active(boma: *mut BattleObjectModuleAccessor) -> boo
 }
 
 
-// NEW: Helper function to update shadowball frame tracking with status history
+//  Helper function to update shadowball frame tracking with status history
 unsafe fn update_shadowball_frame_tracking(player_state: &mut PlayerEvolutionState, current_status: i32) {
     // Store previous status before updating
     if player_state.is_in_shadowball_status && player_state.last_shadowball_status != current_status {
@@ -425,7 +423,7 @@ unsafe fn update_shadowball_frame_tracking(player_state: &mut PlayerEvolutionSta
     }
 }
 
-// NEW: Helper function to get frame threshold based on motion
+//  Helper function to get frame threshold based on motion
 pub unsafe fn get_shadowball_frame_threshold(boma: *mut BattleObjectModuleAccessor) -> i32 {
     let current_motion = MotionModule::motion_kind(boma);
     let is_air_motion = current_motion == SPECIAL_AIR_N_HOLD_MOTION.hash ||
@@ -438,13 +436,13 @@ pub unsafe fn get_shadowball_frame_threshold(boma: *mut BattleObjectModuleAccess
     }
 }
 
-// NEW: Handle shadowball roll transition logic
+//  Handle shadowball roll transition logic
 unsafe fn handle_shadowball_roll_transition(player_state: &mut PlayerEvolutionState, current_status: i32) -> ShadowballState {
     // Update status tracking for consistency
     let _previous_status = player_state.last_shadowball_status;
     player_state.last_shadowball_status = current_status;
     
-    // IMPORTANT: During ANY roll status, we should NEVER show the shadowball mesh
+    // During ANY roll status, we should NEVER show the shadowball mesh
     // The character should be completely invisible during rolls
     // We preserve the frame count for tracking purposes but don't use it for mesh visibility
     
@@ -581,7 +579,7 @@ pub unsafe fn set_active_eye_mesh(
             // Hide all normal meshes when showing evolving meshes
             hide_all_normal_meshes_and_eyes(boma);
             
-            // CRITICAL FIX: Hide ALL eye expressions during evolution - no blinking!
+            // Hide ALL eye expressions during evolution - no blinking!
             for eye_hash in GASTLY_EYE_EXPRESSIONS.iter() { 
                 ModelModule::set_mesh_visibility(boma, *eye_hash, false); 
             }
@@ -626,7 +624,7 @@ pub unsafe fn set_active_eye_mesh(
     show_appropriate_eye_expression(boma, player_state, game_state_expression_override);
 }
 
-// NEW: Handle animation-specific tongue visibility
+//  Handle animation-specific tongue visibility
 unsafe fn handle_animation_specific_tongue_visibility(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) {
     // Check for gengar_tongue_normal animations (Gengar only, non-FS)
     if should_show_gengar_tongue_normal(boma, player_state) {
@@ -662,7 +660,7 @@ unsafe fn handle_animation_specific_tongue_visibility(boma: *mut BattleObjectMod
     }
 }
 
-// NEW: Separate function to hide all normal meshes and eyes
+//  Separate function to hide all normal meshes and eyes
 unsafe fn hide_all_normal_meshes_and_eyes(boma: *mut BattleObjectModuleAccessor) {
     // Hide all normal body meshes
     ModelModule::set_mesh_visibility(boma, *GASTLY_BODY, false);
@@ -681,7 +679,7 @@ unsafe fn hide_all_normal_meshes_and_eyes(boma: *mut BattleObjectModuleAccessor)
     for eye_hash in GENGAR_EYELID_EXPRESSIONS.iter() { ModelModule::set_mesh_visibility(boma, *eye_hash, false); }
 }
 
-// NEW: Restore normal body parts based on current stage
+//  Restore normal body parts based on current stage
 unsafe fn restore_normal_body_parts(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) {
     match player_state.stage {
         EvolutionStage::Gastly => { 
@@ -699,7 +697,7 @@ unsafe fn restore_normal_body_parts(boma: *mut BattleObjectModuleAccessor, playe
     }
 }
 
-// NEW: Show appropriate eye expression (extracted from original logic)
+//  Show appropriate eye expression (extracted from original logic)
 unsafe fn show_appropriate_eye_expression(
     boma: *mut BattleObjectModuleAccessor, 
     player_state: &PlayerEvolutionState, 
@@ -744,7 +742,7 @@ unsafe fn show_appropriate_eye_expression(
 }
 
 
-// NEW: Check for non-shadowball animation meshes (refactored from original)
+//  Check for non-shadowball animation meshes (refactored from original)
 unsafe fn check_and_show_other_animation_meshes(boma: *mut BattleObjectModuleAccessor, player_state: &PlayerEvolutionState) -> bool {
     let current_motion = MotionModule::motion_kind(boma);
     
@@ -793,13 +791,10 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
         if LAST_FS_STATE[entry_id] != is_final_smash_active_flag || 
            LAST_MOTION[entry_id] != current_motion || 
            LAST_FS_FORM[entry_id] != player_state.is_in_final_smash_form {
-            println!("[FS DEBUG] Entry {} - FS Flag: {}, Motion: {:#x}, In Attack Anim: {}, Player FS Form: {}", 
-                    entry_id, is_final_smash_active_flag, current_motion, is_in_fs_attack_animation, player_state.is_in_final_smash_form);
             
             // AGGRESSIVE: Force cleanup on motion change if in final smash form and not in attack animation
             if player_state.is_in_final_smash_form && !is_in_fs_attack_animation && LAST_MOTION[entry_id] != current_motion {
-                println!("[FS DEBUG] Motion changed while in FS form and not in attack - forcing cleanup!");
-                
+                                
                 // Force cleanup immediately
                 EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
                 ModelModule::set_mesh_visibility(boma, *MEGA_GENGAR_BODY, false);
@@ -827,8 +822,7 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
                     }
                 }
                 
-                println!("[FS DEBUG] Forced cleanup complete!");
-            }
+                            }
             
             LAST_FS_STATE[entry_id] = is_final_smash_active_flag;
             LAST_MOTION[entry_id] = current_motion;
@@ -836,7 +830,7 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
         }
     }
     
-    // NEW: Kill sys_final_aura2 effects during ALL final smash motions
+    //  Kill sys_final_aura2 effects during ALL final smash motions
     let fs_motions = [
         smash::hash40("final_start_r"),
         smash::hash40("final"),
@@ -852,8 +846,7 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
 
     if is_final_smash_active_flag && is_in_fs_attack_animation && !player_state.is_in_final_smash_form {
         // Entering Final Smash form
-        println!("[FS DEBUG] Entering final smash form");
-        if player_state.stage == EvolutionStage::Gengar {
+                if player_state.stage == EvolutionStage::Gengar {
             // Hide all animation-specific meshes during FS
             hide_all_animation_specific_meshes(boma);
             
@@ -865,8 +858,7 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
                 // Show Mega Gengar
                 ModelModule::set_mesh_visibility(boma, *MEGA_GENGAR_BODY, true);
                 player_state.is_in_final_smash_form = true;
-                println!("[FS DEBUG] Activated Mega Gengar form");
-            } else if player_state.giga_gengar_form_active {
+                            } else if player_state.giga_gengar_form_active {
                 // Hide normal Gengar parts
                 ModelModule::set_mesh_visibility(boma, *GENGAR_BODY, false); 
                 for eye_hash in GENGAR_EYELID_EXPRESSIONS.iter() { ModelModule::set_mesh_visibility(boma, *eye_hash, false); }
@@ -874,15 +866,13 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
                 // Show Giga Gengar
                 ModelModule::set_mesh_visibility(boma, *GIGA_GENGAR_BODY, true);
                 player_state.is_in_final_smash_form = true;
-                println!("[FS DEBUG] Activated Giga Gengar form");
-            }
+                            }
         }
     } else if (!is_in_fs_attack_animation && player_state.is_in_final_smash_form) || 
               (!is_final_smash_active_flag && player_state.is_in_final_smash_form) { 
         // Exiting Final Smash form - AGGRESSIVE CLEANUP
         
-        println!("[FINAL SMASH] Starting aggressive cleanup - Current stage: {:?}", player_state.stage);
-        
+                
         // STEP 1: Kill any remaining aura effects
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
         
@@ -949,9 +939,7 @@ pub unsafe fn handle_final_smash_model_swap(boma: *mut BattleObjectModuleAccesso
         
         ModelModule::set_mesh_visibility(boma, eye_to_show, true);
         
-        println!("[FINAL SMASH] Aggressive cleanup complete - Restored {:?} with eye: {:#x}", 
-                player_state.stage, eye_to_show.hash);
-    }
+            }
 }
 
 pub unsafe fn hide_all_animation_specific_meshes(boma: *mut BattleObjectModuleAccessor) {
@@ -976,7 +964,7 @@ pub unsafe fn hide_all_animation_specific_meshes(boma: *mut BattleObjectModuleAc
     ModelModule::set_mesh_visibility(boma, *GENGAR_TONGUE_NORMAL, false);
     ModelModule::set_mesh_visibility(boma, *GENGAR_TONGUE_LONG, false);
     
-    // NEW: Hide all evolving meshes
+    //  Hide all evolving meshes
     hide_all_evolving_meshes(boma);
 }
 
@@ -1009,7 +997,7 @@ unsafe fn show_evolving_meshes_for_animation(
     let motion_hash = Hash40 { hash: current_motion };
     let current_status = StatusModule::status_kind(boma);
     
-    // IMPORTANT: Don't show evolving meshes during rollout statuses 
+    // Don't show evolving meshes during rollout statuses 
     // (shadowball logic in set_active_eye_mesh handles those cases)
     if current_status == PURIN_SPECIAL_N_ROLL || current_status == PURIN_SPECIAL_N_ROLL_AIR {
         return false; // Let shadowball logic handle rollout visibility
@@ -1024,8 +1012,7 @@ unsafe fn show_evolving_meshes_for_animation(
     // Check for squat_wait animation (floor shadow)
     if motion_hash.hash == SQUAT_WAIT_MOTION.hash {
         ModelModule::set_mesh_visibility(boma, evolving_floorshadow, true);
-        println!("[EVOLVING MESH] Showing evolving floor shadow during squat_wait");
-        return true;
+                return true;
     }
     
     // Check for tongue animations (only for Gastly → Haunter evolution)
@@ -1038,8 +1025,7 @@ unsafe fn show_evolving_meshes_for_animation(
             if motion_frame >= 7.0 && motion_frame <= 49.0 {
                 ModelModule::set_mesh_visibility(boma, evolving_main, true);
                 ModelModule::set_mesh_visibility(boma, evolving_tongue, true);
-                println!("[EVOLVING MESH] Showing main + tongue during attack_air_lw frame {:.1}", motion_frame);
-                return true;
+                                return true;
             }
         }
         
@@ -1047,15 +1033,13 @@ unsafe fn show_evolving_meshes_for_animation(
         if motion_hash.hash == smash::hash40("catch_attack") || motion_hash.hash == smash::hash40("catch_wait") {
             ModelModule::set_mesh_visibility(boma, evolving_main, true);
             ModelModule::set_mesh_visibility(boma, evolving_tongue, true);
-            println!("[EVOLVING MESH] Showing main + tongue during catch animation");
-            return true;
+                        return true;
         }
     }
     
     // Default case - show main evolving mesh for all other animations
     ModelModule::set_mesh_visibility(boma, evolving_main, true);
-    println!("[EVOLVING MESH] Showing main evolving mesh - default case");
-    true
+        true
 }
 
 // DEPRECATED: Old function kept for compatibility, but now uses new detection
@@ -1077,7 +1061,7 @@ pub unsafe fn is_in_rollout_status(boma: *mut BattleObjectModuleAccessor) -> boo
     current_status == 0x1E3 || current_status == 0x1E4 || current_status == 0x1E5   // SPECIAL_N_ROLL | SPECIAL_N_ROLL_AIR | SPECIAL_N_TURN
 }
 
-// ADD this bomb detection function to visuals.rs:
+// Bomb Detection
 unsafe fn handle_bomb_detection_in_visuals(
     boma: *mut BattleObjectModuleAccessor,
     player_state: &mut PlayerEvolutionState
@@ -1100,8 +1084,7 @@ unsafe fn handle_bomb_detection_in_visuals(
                    (player_state.current_frame - hit_state.last_bomb_frame >= 15);
     
     if fresh_hit {
-        println!("[VISUALS BOMB] Hit detected at frame {}", player_state.current_frame);
-        
+                
         // Get enemy position (simplified)
         let mut enemy_pos = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
         ModelModule::joint_global_position(boma, Hash40::new("top"), &mut enemy_pos, true);
@@ -1144,8 +1127,7 @@ unsafe fn handle_bomb_detection_in_visuals(
         
         if bomb_handle != u64::MAX || backup_handle != u64::MAX {
             hit_state.last_bomb_frame = player_state.current_frame;
-            println!("[VISUALS BOMB] Spawned bomb effect");
-        }
+                    }
     }
     
     hit_state.was_hitting = currently_hitting;
@@ -1158,26 +1140,14 @@ pub unsafe fn handle_weakened_state_isolated(
     eye_expression: Hash40,
     current_frame: i32
 ) -> Hash40 {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-    if entry_id >= 8 { return eye_expression; }
-    
-    // DEBUG: Check if flag was mysteriously reset
-    let was_spawned_last_frame = WEAKENED_SPAWNED[entry_id];
-    let last_frame_checked = DEBUG_LAST_FRAME_CHECKED[entry_id];
-    
-    if was_spawned_last_frame && last_frame_checked == (current_frame - 1) {
-        // Flag should still be true from last frame
-        if !WEAKENED_SPAWNED[entry_id] {
-            println!("[WEAKENED BUG] Flag was reset between frames {} and {}!", last_frame_checked, current_frame);
-        }
-    }
-    DEBUG_LAST_FRAME_CHECKED[entry_id] = current_frame;
-    
     let current_damage = DamageModule::damage(boma, 0);
-    let last_damage = WEAKENED_LAST_DAMAGE[entry_id];
-    let already_spawned = WEAKENED_SPAWNED[entry_id];
+    let last_damage = WorkModule::get_float(boma, WEAKENED_LAST_DAMAGE_WORK_ID);
     
-    // Check if should be weakened (copy your exact logic)
+    // Get last spawn frame to prevent multiple spawns per frame
+    let last_spawn_frame = WorkModule::get_int(boma, WEAKENED_LAST_SPAWN_FRAME_WORK_ID);
+    let frames_since_spawn = current_frame - last_spawn_frame;
+    
+    // Check if should be weakened
     let should_be_weakened = {
         if current_damage < 150.0 { false }
         else {
@@ -1197,18 +1167,20 @@ pub unsafe fn handle_weakened_state_isolated(
         }
     };
     
-    // Detect significant damage drop (training mode reset)
+    // Get stored effect handle
+    let stored_handle = WorkModule::get_int(boma, WEAKENED_EFFECT_HANDLE_WORK_ID) as u32;
+    let effect_exists = stored_handle != 0 && EffectModule::is_exist_effect(boma, stored_handle);
+    
+    // Detect training mode damage drop
     let damage_dropped = last_damage >= 150.0 && current_damage < 150.0;
     
-    // Handle effect spawning/cleanup
-    if damage_dropped && already_spawned {
-        // Training mode damage drop - kill effect
-        EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_weak"), false, true);
-        WEAKENED_SPAWNED[entry_id] = false;
-        println!("[WEAKENED ISOLATED] Killed due to damage drop: {:.1} -> {:.1}", last_damage, current_damage);
+    if damage_dropped && effect_exists {
+        // Kill effect on damage drop
+        EffectModule::kill(boma, stored_handle, false, true);
+        WorkModule::set_int(boma, 0, WEAKENED_EFFECT_HANDLE_WORK_ID);
     }
-    else if should_be_weakened && !already_spawned {
-        // Need to spawn effect
+    else if should_be_weakened && !effect_exists && frames_since_spawn >= 40 {
+        // Need to spawn effect (with 40-frame cooldown)
         let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
         let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
         
@@ -1223,26 +1195,24 @@ pub unsafe fn handle_weakened_state_isolated(
         ) as u32;
         
         if handle != u64::MAX as u32 && handle != 0 {
-            WEAKENED_SPAWNED[entry_id] = true;
-            println!("[WEAKENED ISOLATED] Spawned effect - Handle: {} - Frame: {} - Flag set to TRUE", handle, current_frame);
+            WorkModule::set_int(boma, handle as i32, WEAKENED_EFFECT_HANDLE_WORK_ID);
+            WorkModule::set_int(boma, current_frame, WEAKENED_LAST_SPAWN_FRAME_WORK_ID);
         }
     }
-    else if !should_be_weakened && already_spawned {
+    else if !should_be_weakened && effect_exists {
         // No longer weakened - kill effect
-        EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_weak"), false, true);
-        WEAKENED_SPAWNED[entry_id] = false;
-        println!("[WEAKENED ISOLATED] Killed - no longer weakened");
+        EffectModule::kill(boma, stored_handle, false, true);
+        WorkModule::set_int(boma, 0, WEAKENED_EFFECT_HANDLE_WORK_ID);
     }
     
     // Handle death cleanup (low damage after having high damage)
-    if current_damage <= 5.0 && last_damage >= 50.0 && already_spawned {
-        EffectModule::kill_kind(boma, Hash40::new("rosetta_tico_weak"), false, true);
-        WEAKENED_SPAWNED[entry_id] = false;
-        println!("[WEAKENED ISOLATED] Killed on death/respawn");
+    if current_damage <= 5.0 && last_damage >= 50.0 && effect_exists {
+        EffectModule::kill(boma, stored_handle, false, true);
+        WorkModule::set_int(boma, 0, WEAKENED_EFFECT_HANDLE_WORK_ID);
     }
     
     // Update damage tracking
-    WEAKENED_LAST_DAMAGE[entry_id] = current_damage;
+    WorkModule::set_float(boma, current_damage, WEAKENED_LAST_DAMAGE_WORK_ID);
     
     // Return appropriate eye expression
     if should_be_weakened {
@@ -1269,17 +1239,15 @@ pub unsafe fn handle_weakened_state_isolated(
 
 // Simple cleanup function for emergencies only
 pub unsafe fn emergency_cleanup_weakened(entry_id: u32) {
-    let entry_idx = entry_id as usize;
-    if entry_idx >= 8 { return; }
-    
-    if WEAKENED_SPAWNED[entry_idx] {
-        let fighter_boma = smash::app::sv_battle_object::module_accessor(entry_id);
-        if !fighter_boma.is_null() {
-            EffectModule::kill_kind(fighter_boma, Hash40::new("rosetta_tico_weak"), false, true);
-        }
-        WEAKENED_SPAWNED[entry_idx] = false;
-        WEAKENED_LAST_DAMAGE[entry_idx] = 0.0;
-        println!("[WEAKENED ISOLATED] Emergency cleanup for entry {}", entry_id);
+    let fighter_boma = smash::app::sv_battle_object::module_accessor(entry_id);
+    if !fighter_boma.is_null() {
+        // Kill any existing effect
+        EffectModule::kill_kind(fighter_boma, Hash40::new("rosetta_tico_weak"), false, true);
+        
+        // Reset WorkModule tracking
+        WorkModule::set_int(fighter_boma, 0, WEAKENED_EFFECT_HANDLE_WORK_ID);
+        WorkModule::set_float(fighter_boma, 0.0, WEAKENED_LAST_DAMAGE_WORK_ID);
+        WorkModule::set_int(fighter_boma, -60, WEAKENED_LAST_SPAWN_FRAME_WORK_ID); // Reset spawn frame
     }
 }
 

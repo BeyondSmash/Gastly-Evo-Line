@@ -1,4 +1,4 @@
-// src/gastly/sounds.rs - FIXED with proper Gengar step sounds and working PLAY_STATUS
+// src/gastly/sounds.rs
 
 use smash::app::lua_bind::*;
 use smash::lib::lua_const::*;
@@ -14,8 +14,6 @@ use smash::app::sv_animcmd::*;
 // Import our player state system
 use crate::gastly::{FIGHTER_STATES, player_state::EvolutionStage};
 
-// Audio configuration constants
-pub const GASTLY_AUDIO_DEBUG: bool = false;
 
 // Helper function to determine if current stage should mute step sounds
 unsafe fn should_mute_steps(boma: *mut BattleObjectModuleAccessor) -> bool {
@@ -42,10 +40,6 @@ unsafe extern "C" fn sound_walkslow(agent: &mut L2CAgentBase) {
         if macros::is_excute(agent) {
             sound!(agent, *MA_MSC_CMD_SOUND_STOP_SE_STATUS);
             macros::PLAY_STATUS(agent, Hash40::new("g_walkslow"));
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[WALK STATUS] Started g_walkslow status sound");
-            }
         }
     } else {
         // Gengar: Use looping step sounds
@@ -74,10 +68,6 @@ unsafe extern "C" fn sound_walkmiddle(agent: &mut L2CAgentBase) {
         if macros::is_excute(agent) {
             sound!(agent, *MA_MSC_CMD_SOUND_STOP_SE_STATUS);
             macros::PLAY_STATUS(agent, Hash40::new("g_walkmiddle"));
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[WALK STATUS] Started g_walkmiddle status sound");
-            }
         }
     } else {
         // Gengar: Use looping step sounds
@@ -111,10 +101,6 @@ unsafe extern "C" fn sound_walkfast(agent: &mut L2CAgentBase) {
         if macros::is_excute(agent) {
             sound!(agent, *MA_MSC_CMD_SOUND_STOP_SE_STATUS);
             macros::PLAY_STATUS(agent, Hash40::new("g_walkfast"));
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[WALK STATUS] Started g_walkfast status sound");
-            }
         }
     } else {
         // Gengar: Use looping step sounds
@@ -146,10 +132,6 @@ unsafe extern "C" fn sound_run(agent: &mut L2CAgentBase) {
     frame(lua_state, 1.0);
     if macros::is_excute(agent) {
         macros::PLAY_STATUS(agent, Hash40::new("g_run"));
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[RUN STATUS] Started g_run status sound");
-        }
     }
 }
 
@@ -160,11 +142,6 @@ pub unsafe fn cleanup_motion_sounds_on_death(boma: *mut BattleObjectModuleAccess
     SoundModule::stop_se(boma, Hash40::new("g_walkfast"), 0);
     SoundModule::stop_se(boma, Hash40::new("g_walkmiddle"), 0);
     SoundModule::stop_se(boma, Hash40::new("g_walkslow"), 0);
-    
-    if GASTLY_AUDIO_DEBUG {
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID);
-        println!("[MOTION SOUND] Cleaned up motion sounds for entry {}", entry_id);
-    }
 }
 
 // Install custom sound logic
@@ -177,5 +154,4 @@ pub fn install_sound_logic_with_costumes(costume: &[usize]) {
         .sound_acmd("sound_run", sound_run, Priority::Low)
         .install();
     
-    println!("[GASTLY AUDIO] Sound system with costume filtering installed for {:?}!", costume);
 }

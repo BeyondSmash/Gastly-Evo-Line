@@ -12,7 +12,6 @@ use smash_script::sound;
 use smash_script::lua_args;
 
 // Import our sound system
-use crate::gastly::sounds::GASTLY_AUDIO_DEBUG;
 use crate::gastly::{FIGHTER_STATES};
 use crate::gastly::player_state::EvolutionStage;
 
@@ -65,7 +64,7 @@ unsafe extern "C" fn sound_appealhil(agent: &mut L2CAgentBase) {
     
     frame(lua_state, 2.0);
     if macros::is_excute(agent) {
-        // NEW: Custom sound based on evolution stage
+        //  Custom sound based on evolution stage
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
         let appeal_sound = {
             let states_map = FIGHTER_STATES.read();
@@ -88,10 +87,6 @@ unsafe extern "C" fn sound_appealhil(agent: &mut L2CAgentBase) {
         
         // VANILLA: Original sounds (but skip the vanilla voice)
         macros::PLAY_SE(agent, Hash40::new("se_purin_appear01"));
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Up taunt left: {} + g_appeal_h01 + vanilla", appeal_sound);
-        }
     }
     wait(lua_state, 25.0);
     if macros::is_excute(agent) {
@@ -114,7 +109,7 @@ unsafe extern "C" fn sound_appealhir(agent: &mut L2CAgentBase) {
     
     frame(lua_state, 2.0);
     if macros::is_excute(agent) {
-        // NEW: Custom sound based on evolution stage
+        //  Custom sound based on evolution stage
         let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
         let appeal_sound = {
             let states_map = FIGHTER_STATES.read();
@@ -137,10 +132,6 @@ unsafe extern "C" fn sound_appealhir(agent: &mut L2CAgentBase) {
         
         // VANILLA: Original sounds (but skip the vanilla voice)
         macros::PLAY_SE(agent, Hash40::new("se_purin_appear01"));
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Up taunt right: {} + g_appeal_h01 + vanilla", appeal_sound);
-        }
     }
     wait(lua_state, 25.0);
     if macros::is_excute(agent) {
@@ -177,10 +168,6 @@ unsafe extern "C" fn sound_attackairlw(agent: &mut L2CAgentBase) {
         if macros::is_excute(agent) {
             let dair_tongue = SoundModule::play_se(boma, Hash40::new("gas_hau_tongue_dair"), true, false, false, false, smash::app::enSEType(0));
             SoundModule::set_se_vol(agent.module_accessor, dair_tongue as i32, 1.3, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ACMD SOUND] Down air custom: gas_hau_tongue_dair");
-            }
         }
     } else {
         // Vanilla Jigglypuff down air for Gengar
@@ -228,13 +215,9 @@ unsafe extern "C" fn sound_attacklw4(agent: &mut L2CAgentBase) {
         macros::STOP_SE(agent, Hash40::new("se_common_smash_start_04"));
         macros::PLAY_SEQUENCE(agent, Hash40::new("seq_purin_rnd_attack_smash_l"));
         macros::PLAY_SE(agent, Hash40::new("se_purin_swing_ll"));
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Down smash: g_down_smash + vanilla");
-        }
     }
     
-    // NEW: Add attack voice 1 frame after PLAY_SEQUENCE
+    //  Add attack voice 1 frame after PLAY_SEQUENCE
     frame(lua_state, 15.0);
     if macros::is_excute(agent) {
         let voice_chance = crate::gastly::random_module::rand_range_i32(1, 100);
@@ -247,10 +230,6 @@ unsafe extern "C" fn sound_attacklw4(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Down smash: {} (20% chance)", attack_sound);
-            }
         }
     }
     
@@ -278,10 +257,6 @@ unsafe extern "C" fn sound_attacklw3(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, gdtilt as i32, 0.3, 0);
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Down tilt: g_down_tilt on frame 5");
-        }
     }
     
     frame(lua_state, 10.0);
@@ -302,10 +277,6 @@ unsafe extern "C" fn sound_attacklw3(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Down tilt: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -344,10 +315,6 @@ unsafe extern "C" fn sound_attackairf(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Forward air: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -386,10 +353,6 @@ unsafe extern "C" fn sound_attackairn(agent: &mut L2CAgentBase) {
                 smash::app::enSEType(0)
             );
             SoundModule::set_se_vol(boma, attack_handle as i32, 1.2, 0);
-            
-            if GASTLY_AUDIO_DEBUG {
-                println!("[ATTACK VOICE] Neutral air: {} (20% chance)", attack_sound);
-            }
         }
     }
 }
@@ -961,10 +924,6 @@ unsafe extern "C" fn sound_entryl(agent: &mut L2CAgentBase) {
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, cry_handle as i32, 2.0, 0);
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Entry left: played cry_gastly on frame 65");
-        }
     }
     
     // Frame 95: Replace landing sound with gas_hau_landing
@@ -1020,10 +979,6 @@ unsafe extern "C" fn sound_entryr(agent: &mut L2CAgentBase) {
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, cry_handle as i32, 2.0, 0);
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[ACMD SOUND] Entry right: played cry_gastly on frame 65");
-        }
     }
     
     // Frame 95: Replace landing sound with gas_hau_landing
@@ -1173,10 +1128,6 @@ unsafe extern "C" fn sound_final(agent: &mut L2CAgentBase) {
             smash::app::enSEType(0)
         );
         SoundModule::set_se_vol(boma, final_handle as i32, volume, 0);
-        
-        if GASTLY_AUDIO_DEBUG {
-            println!("[FINAL SOUND] Played {} with volume {}", final_sound, volume);
-        }
     }
 }
 
@@ -1297,5 +1248,4 @@ pub fn install_acmd_sound_with_costumes(costume: &[usize]) {
         .sound_acmd("sound_speciallwr", sound_speciallwr, Priority::Low)
         .install();
     
-    println!("[ACMD SOUND] ACMD sound overrides with costume filtering installed for {:?}!", costume);
 }

@@ -241,27 +241,23 @@ extern "C" fn mods_mounted(_ev: arcropolis_api::Event) {
     the_csk_collection_api::allow_ui_chara_hash_online(hash40("ui_chara_giga_gengar_00"));
 
     // Debug: Print the hashes we're registering vs what we're using
-    println!("[CSK DEBUG] Registered hashes:");
-    println!("  ui_chara_evolving: {:#x}", hash40("ui_chara_evolving"));
-    println!("  ui_chara_haunter: {:#x}", hash40("ui_chara_haunter"));
-    println!("  ui_chara_gengar: {:#x}", hash40("ui_chara_gengar"));
 
     println!("[CSK COLLECTION] Gastly mod detected {} marked colors starting from color {}", color_num, lowest_color);
-    // Install ACMD functions with costume filtering after marked colors are detected
+    
+    // Install systems exactly as they were when hook comment-out worked
+    crate::gastly::install();
     crate::gastly::install_frame_callbacks_with_costumes();
     crate::gastly::install_acmd_with_costumes();
+    
 }
 
 #[skyline::main(name = "libgastly")]
 pub fn main() {
-    println!("[DEBUG] Main function starting...");
     
     if !check_deps() {
-        println!("[DEBUG] Dependencies check failed!");
         return;
     }
     
-    println!("[DEBUG] Dependencies OK, registering callback...");
 
     unsafe {
         extern "C" {
@@ -272,6 +268,4 @@ pub fn main() {
         }
         arcrop_register_event_callback(arcropolis_api::Event::ModFilesystemMounted, mods_mounted);
     }
-
-    gastly::install();
 }

@@ -35,7 +35,6 @@ unsafe extern "C" fn effect_specials(agent: &mut L2CAgentBase) {
         macros::LANDING_EFFECT(agent, Hash40::new("sys_atk_smoke"), Hash40::new("top"), 3, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 0, false);
     }
     
-    // ADD OUR CUSTOM EFFECT HERE
     frame(agent.lua_state_agent, 11.0);
     if macros::is_excute(agent) {
         macros::EFFECT_FOLLOW(agent, Hash40::new("sys_attack_line"), Hash40::new("top"), 0.0, 3.5, -5.0, 0.0, 0.0, 0.0, 1.5, false);
@@ -67,7 +66,6 @@ unsafe extern "C" fn effect_specialairs(agent: &mut L2CAgentBase) {
         macros::LAST_EFFECT_SET_COLOR(agent, 0.2, 0.1, 0.43);
     }
     
-    // ADD OUR CUSTOM EFFECT HERE FOR AIR VERSION
     frame(agent.lua_state_agent, 11.0);
     if macros::is_excute(agent) {
         macros::EFFECT_FOLLOW(agent, Hash40::new("sys_attack_line"), Hash40::new("top"), 0.0, 3.5, -5.0, 0.0, 0.0, 0.0, 1.5, false);
@@ -404,7 +402,6 @@ unsafe extern "C" fn effect_attackairn(agent: &mut L2CAgentBase) {
     frame(agent.lua_state_agent, 6.0);
     if macros::is_excute(agent) {
         macros::EFFECT_FLIP_ALPHA(agent, Hash40::new("sys_attack_impact"), Hash40::new("sys_attack_impact"), Hash40::new("top"), 2, 3.3, 9, 0, 0, 0, 1.1, 0, 0, 0, 0, 0, 0, true, *EF_FLIP_YZ, 0.9);
-        // Add the requested edge_attack_dash effect on toel bone
         macros::EFFECT_FOLLOW_NO_STOP(agent, Hash40::new("edge_attack_dash"), Hash40::new("toel"), 0, 0, 0, 0, 0, 0, 1.0, true);
     }
 }
@@ -734,7 +731,7 @@ unsafe extern "C" fn effect_catchpull(agent: &mut L2CAgentBase) {
             macros::EFFECT(agent, Hash40::new("ridley_grabbing_catch"), Hash40::new("top"), 0, 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, true);
         }
     } else {
-        // NEW: Stop g_grab_burn sound for non-Gastly stages
+        //  Stop g_grab_burn sound for non-Gastly stages
         SoundModule::stop_se(boma, Hash40::new("g_grab_burn"), 0);
     }
 }
@@ -756,8 +753,33 @@ unsafe extern "C" fn effect_catchwait(agent: &mut L2CAgentBase) {
             macros::EFFECT(agent, Hash40::new("ridley_grabbing_catch"), Hash40::new("top"), 0, 3, 10, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, true);
         }
     } else {
-        // NEW: Stop g_grab_burn sound for non-Gastly stages
+        //  Stop g_grab_burn sound for non-Gastly stages
         SoundModule::stop_se(boma, Hash40::new("g_grab_burn"), 0);
+    }
+}
+
+// Neutral Special Rollout Wind Effect
+unsafe extern "C" fn effect_specialnkorogaruwind(agent: &mut L2CAgentBase) {
+    if macros::is_excute(agent) {
+        macros::EFFECT_FOLLOW(agent, Hash40::new("purin_korogaru_wind"), Hash40::new("body"), 0, 0, 0, 0, 0, 0, 1, true);
+        macros::LAST_EFFECT_SET_COLOR(agent, 0.2, 0.1, 0.4);
+        EffectModule::enable_sync_init_pos_last(agent.module_accessor);
+    }
+}
+
+// Neutral Special Turn Effect (Ground)
+unsafe extern "C" fn effect_specialnturneffect(agent: &mut L2CAgentBase) {
+    if macros::is_excute(agent) {
+        macros::EFFECT_FOLLOW(agent, Hash40::new("purin_korogaru_loop"), Hash40::new("body"), 0, 0, 0, 0, 0, 0, 1, false);
+        macros::LAST_EFFECT_SET_COLOR(agent, 0.2, 0.1, 0.4);
+    }
+}
+
+// Neutral Special Turn Effect (Air)
+unsafe extern "C" fn effect_specialairnturneffect(agent: &mut L2CAgentBase) {
+    if macros::is_excute(agent) {
+        macros::EFFECT_FOLLOW(agent, Hash40::new("purin_korogaru_loop"), Hash40::new("body"), 0, 0, 0, 0, 0, 0, 1, false);
+        macros::LAST_EFFECT_SET_COLOR(agent, 0.2, 0.1, 0.4);
     }
 }
 
@@ -799,7 +821,9 @@ pub fn install_acmd_with_costumes(costume: &[usize]) {
         .effect_acmd("effect_attackhi4", effect_attackhi4, Priority::Low)
         .effect_acmd("effect_catchpull", effect_catchpull, Priority::Low)
         .effect_acmd("effect_catchwait", effect_catchwait, Priority::Low)
+        .effect_acmd("effect_specialnkorogaruwind", effect_specialnkorogaruwind, Priority::Low)
+        .effect_acmd("effect_specialnturneffect", effect_specialnturneffect, Priority::Low)
+        .effect_acmd("effect_specialairnturneffect", effect_specialairnturneffect, Priority::Low)
         .install();
     
-    println!("[ACMD] Effect ACMD with costume filtering installed for {:?}!", costume);
-}
+    }
