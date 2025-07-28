@@ -19,6 +19,34 @@ use smash::hash40;
 pub static mut MARKED_COLORS: [bool; 256] = [false; 256];
 pub static mut SHINY_COLORS: [bool; 256] = [false; 256];
 
+/// Check if a fighter is a marked Gastly costume (only for Purin)
+pub unsafe fn is_marked_gastly_costume(boma: *mut smash::app::BattleObjectModuleAccessor) -> bool {
+    if boma.is_null() { return false; }
+    
+    // Only apply to Purin
+    let fighter_kind = smash::app::utility::get_kind(&mut *boma);
+    if fighter_kind != *smash::lib::lua_const::FIGHTER_KIND_PURIN {
+        return false;
+    }
+    
+    let color_id = smash::app::lua_bind::WorkModule::get_int(boma, *smash::lib::lua_const::FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
+    color_id < 256 && MARKED_COLORS[color_id]
+}
+
+/// Check if a fighter is a shiny Gastly costume (only for Purin)
+pub unsafe fn is_shiny_gastly_costume(boma: *mut smash::app::BattleObjectModuleAccessor) -> bool {
+    if boma.is_null() { return false; }
+    
+    // Only apply to Purin
+    let fighter_kind = smash::app::utility::get_kind(&mut *boma);
+    if fighter_kind != *smash::lib::lua_const::FIGHTER_KIND_PURIN {
+        return false;
+    }
+    
+    let color_id = smash::app::lua_bind::WorkModule::get_int(boma, *smash::lib::lua_const::FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
+    color_id < 256 && SHINY_COLORS[color_id]
+}
+
 mod gastly;
 mod singletons;
 
@@ -34,7 +62,7 @@ pub fn check_deps() -> bool {
         "rom:/skyline/plugins/libsmashline_plugin.nro",
     ] {
         if !std::path::Path::new(dep).is_file() {
-            println!("{} not found! This installation is incomplete. Please download all dependencies listed in the README file.", dep);
+            // Dependency missing - installation incomplete
             passed = false;
         }
     }
@@ -73,7 +101,7 @@ extern "C" fn mods_mounted(_ev: arcropolis_api::Event) {
             unsafe {
                 SHINY_COLORS[x as usize] = true;
             }
-            println!("[SHINY] Detected shiny slot: c{:02}", x);
+            // Shiny slot detected
         }
     }
 
@@ -240,9 +268,7 @@ extern "C" fn mods_mounted(_ev: arcropolis_api::Event) {
     the_csk_collection_api::allow_ui_chara_hash_online(hash40("ui_chara_mega_gengar_00"));
     the_csk_collection_api::allow_ui_chara_hash_online(hash40("ui_chara_giga_gengar_00"));
 
-    // Debug: Print the hashes we're registering vs what we're using
-
-    println!("[CSK COLLECTION] Gastly mod detected {} marked colors starting from color {}", color_num, lowest_color);
+    // Gastly mod initialization with detected colors
     
     // Install systems exactly as they were when hook comment-out worked
     crate::gastly::install();

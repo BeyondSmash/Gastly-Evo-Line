@@ -385,10 +385,8 @@ unsafe fn is_rollout_hitbox_active(boma: *mut BattleObjectModuleAccessor) -> boo
     
     let has_hitbox = attack_active || infliction_active || occur_active;
     
-    // Optional debug to verify detection
     if has_hitbox {
-    //    println!("[HITBOX DEBUG] Active rollout hitbox detected - Attack:{}, Infliction:{}, Occur:{}", 
-    //            attack_active, infliction_active, occur_active);
+        // Hitbox is active
     }
     
     has_hitbox
@@ -471,8 +469,10 @@ pub unsafe fn set_active_eye_mesh(
             let is_hold_status = current_status == 0x1E1 || current_status == 0x1E2;
             
             if is_hold_status {
-                // Show shadowball mesh (evolving version if evolving, normal if not)
+                // PRIORITY: During hold/charge status, ALWAYS show shadowball mesh (never evolving mesh)
+                // This fixes the issue where evolving mesh shows during special n hold when shadow ball effect is active
                 let shadow_ball_mesh = if player_state.is_evolving {
+                    // Show evolving shadowball mesh during evolution hold status
                     match (player_state.stage, player_state.evolution_target_stage) {
                         (EvolutionStage::Gastly, EvolutionStage::Haunter) => *GASTLY_EVOLVING_SHADOWBALL,
                         (EvolutionStage::Haunter, EvolutionStage::Gengar) => *HAUNTER_EVOLVING_SHADOWBALL,
@@ -483,6 +483,7 @@ pub unsafe fn set_active_eye_mesh(
                         }
                     }
                 } else {
+                    // Not evolving - normal shadowball mesh logic
                     match player_state.stage {
                         EvolutionStage::Gastly => *GASTLY_SHADOWBALL,
                         EvolutionStage::Haunter => *HAUNTER_SHADOWBALL,
@@ -547,12 +548,43 @@ pub unsafe fn set_active_eye_mesh(
                     return;
                 }
             } else {
-                // Regular rollout without hitbox - normal visibility logic
-                restore_normal_body_parts(boma, player_state);
-                enforce_gastly_body_hiding(boma, player_state);
-                handle_animation_specific_tongue_visibility(boma, player_state);
-                show_appropriate_eye_expression(boma, player_state, game_state_expression_override);
-                return;
+                // Regular rollout without hitbox - check if evolving
+                if player_state.is_evolving {
+                    // Show evolving mesh during ground rollout when evolving (fixes air-to-ground transition)
+                    let evolving_main = match (player_state.stage, player_state.evolution_target_stage) {
+                        (EvolutionStage::Gastly, EvolutionStage::Haunter) => *GASTLY_EVOLVING,
+                        (EvolutionStage::Haunter, EvolutionStage::Gengar) => *HAUNTER_EVOLVING,
+                        _ => {
+                            restore_normal_body_parts(boma, player_state);
+                            enforce_gastly_body_hiding(boma, player_state);
+                            handle_animation_specific_tongue_visibility(boma, player_state);
+                            show_appropriate_eye_expression(boma, player_state, game_state_expression_override);
+                            return;
+                        }
+                    };
+                    ModelModule::set_mesh_visibility(boma, evolving_main, true);
+                    
+                    // Hide all eyes during evolution rollout
+                    for eye_hash in GASTLY_EYE_EXPRESSIONS.iter() { 
+                        ModelModule::set_mesh_visibility(boma, *eye_hash, false); 
+                    }
+                    for eye_hash in HAUNTER_EYELID_EXPRESSIONS.iter() { 
+                        ModelModule::set_mesh_visibility(boma, *eye_hash, false); 
+                    }
+                    for eye_hash in GENGAR_EYELID_EXPRESSIONS.iter() { 
+                        ModelModule::set_mesh_visibility(boma, *eye_hash, false); 
+                    }
+                    ModelModule::set_mesh_visibility(boma, *HAUNTER_IRIS, false);
+                    ModelModule::set_mesh_visibility(boma, *GENGAR_IRIS, false);
+                    return;
+                } else {
+                    // Not evolving - normal rollout visibility logic
+                    restore_normal_body_parts(boma, player_state);
+                    enforce_gastly_body_hiding(boma, player_state);
+                    handle_animation_specific_tongue_visibility(boma, player_state);
+                    show_appropriate_eye_expression(boma, player_state, game_state_expression_override);
+                    return;
+                }
             }
         },
         
@@ -1003,10 +1035,19 @@ unsafe fn show_evolving_meshes_for_animation(
         return false; // Let shadowball logic handle rollout visibility
     }
     
-    // Don't show during shadowball hold statuses either
-    // (shadowball logic handles evolving shadowball mesh)
+    // SPECIAL CASE: During evolution with hold statuses, check if hitbox is active
     if current_status == PURIN_SPECIAL_N_HOLD || current_status == PURIN_SPECIAL_N_HOLD_MAX {
-        return false; // Let shadowball logic handle this
+        // If evolving and no hitbox is active, show evolving mesh instead of shadowball
+        let has_active_hitbox = AttackModule::is_attack(boma, 0, false) ||
+                               AttackModule::is_attack(boma, 1, false) ||
+                               AttackModule::is_attack(boma, 2, false) ||
+                               AttackModule::is_infliction_status(boma, 0) ||
+                               AttackModule::is_attack_occur(boma);
+        
+        if has_active_hitbox {
+            return false; // Let shadowball logic handle this (hitbox is active)
+        }
+        // If no hitbox, continue to show evolving mesh below
     }
     
     // Check for squat_wait animation (floor shadow)

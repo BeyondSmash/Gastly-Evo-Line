@@ -16,10 +16,10 @@ use crate::gastly::{FIGHTER_STATES};
 use crate::gastly::player_state::EvolutionStage;
 
 unsafe fn get_attack_voice_correct(boma: *mut BattleObjectModuleAccessor, attack_type: &str) -> &'static str {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let states_map = FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         match player_state.stage {
             crate::gastly::player_state::EvolutionStage::Gastly => {
                 let random = crate::gastly::random_module::rand_range_i32(1, 4);
@@ -65,10 +65,10 @@ unsafe extern "C" fn sound_appealhil(agent: &mut L2CAgentBase) {
     frame(lua_state, 2.0);
     if macros::is_excute(agent) {
         //  Custom sound based on evolution stage
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+        let instance_key = crate::gastly::get_instance_key(boma);
         let appeal_sound = {
             let states_map = FIGHTER_STATES.read();
-            states_map.get(&entry_id)
+            states_map.get(&instance_key)
                 .map(|state| match state.stage {
                     crate::gastly::player_state::EvolutionStage::Gastly => "gas_appeal01",
                     crate::gastly::player_state::EvolutionStage::Haunter => "hau_appeal01", 
@@ -110,10 +110,10 @@ unsafe extern "C" fn sound_appealhir(agent: &mut L2CAgentBase) {
     frame(lua_state, 2.0);
     if macros::is_excute(agent) {
         //  Custom sound based on evolution stage
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+        let instance_key = crate::gastly::get_instance_key(boma);
         let appeal_sound = {
             let states_map = FIGHTER_STATES.read();
-            states_map.get(&entry_id)
+            states_map.get(&instance_key)
                 .map(|state| match state.stage {
                     crate::gastly::player_state::EvolutionStage::Gastly => "gas_appeal01",
                     crate::gastly::player_state::EvolutionStage::Haunter => "hau_appeal01",
@@ -152,10 +152,10 @@ unsafe extern "C" fn sound_attackairlw(agent: &mut L2CAgentBase) {
     let lua_state = agent.lua_state_agent;
     let boma = agent.module_accessor;
     
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     let is_gastly_or_haunter = {
         let states_map = FIGHTER_STATES.read();
-        states_map.get(&entry_id)
+        states_map.get(&instance_key)
             .map(|state| matches!(state.stage, 
                 crate::gastly::player_state::EvolutionStage::Gastly | 
                 crate::gastly::player_state::EvolutionStage::Haunter))
@@ -441,10 +441,10 @@ unsafe extern "C" fn sound_appeallwr(agent: &mut L2CAgentBase) {
 
 // Landing functions - gas_hau_landing for Gastly/Haunter only
 unsafe fn get_landing_sound(boma: *mut BattleObjectModuleAccessor, fallback: &'static str) -> &'static str {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let states_map = FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         match player_state.stage {
             crate::gastly::player_state::EvolutionStage::Gastly | 
             crate::gastly::player_state::EvolutionStage::Haunter => "gas_hau_landing",
@@ -598,10 +598,10 @@ unsafe extern "C" fn sound_landinglight(agent: &mut L2CAgentBase) {
     
     frame(lua_state, 2.0);
     if macros::is_excute(agent) {
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+        let instance_key = crate::gastly::get_instance_key(boma);
         let states_map = FIGHTER_STATES.read();
         
-        if let Some(player_state) = states_map.get(&entry_id) {
+        if let Some(player_state) = states_map.get(&instance_key) {
             match player_state.stage {
                 crate::gastly::player_state::EvolutionStage::Gastly | 
                 crate::gastly::player_state::EvolutionStage::Haunter => {
@@ -725,10 +725,10 @@ unsafe extern "C" fn sound_passivewall(agent: &mut L2CAgentBase) {
 
 // Helper function to check if current stage should mute step sounds
 unsafe fn should_mute_steps(boma: *mut BattleObjectModuleAccessor) -> bool {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let states_map = FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         matches!(player_state.stage, 
                 crate::gastly::player_state::EvolutionStage::Gastly | 
                 crate::gastly::player_state::EvolutionStage::Haunter)
@@ -1025,10 +1025,10 @@ unsafe extern "C" fn sound_catchdash(agent: &mut L2CAgentBase) {
     let boma = agent.module_accessor;
     
     // Get current evolution stage
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     let current_stage = {
         let states_map = FIGHTER_STATES.read();
-        states_map.get(&entry_id)
+        states_map.get(&instance_key)
             .map(|state| state.stage)
             .unwrap_or(EvolutionStage::Gastly)
     };
@@ -1090,10 +1090,10 @@ unsafe extern "C" fn sound_final(agent: &mut L2CAgentBase) {
     frame(lua_state, 10.0);
     if macros::is_excute(agent) {
         // Get current evolution stage and final smash form
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+        let instance_key = crate::gastly::get_instance_key(boma);
         let (final_sound, volume) = {
             let states_map = FIGHTER_STATES.read();
-            if let Some(player_state) = states_map.get(&entry_id) {
+            if let Some(player_state) = states_map.get(&instance_key) {
                 // Check for final smash forms first
                 if player_state.is_in_final_smash_form {
                     if player_state.mega_gengar_form_active {

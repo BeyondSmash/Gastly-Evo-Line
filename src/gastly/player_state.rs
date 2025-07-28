@@ -273,6 +273,10 @@ impl PlayerEvolutionState {
         self.stage = new_stage;
         self.damage_received_this_stage = 0.0;
         self.hits_landed_this_stage = 0;
+        
+        // Reset penalties when transitioning to new stage to prevent carryover
+        self.evo_attempt_delay_damage_taken_penalty = 0.0;
+        self.evo_attempt_delay_hits_penalty = 0;
 
 
         self.shadowball_status_frames = 0;

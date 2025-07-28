@@ -17,10 +17,10 @@ use crate::gastly::{FIGHTER_STATES, player_state::EvolutionStage};
 
 // Helper function to determine if current stage should mute step sounds
 unsafe fn should_mute_steps(boma: *mut BattleObjectModuleAccessor) -> bool {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let states_map = FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         matches!(player_state.stage, 
                 EvolutionStage::Gastly | 
                 EvolutionStage::Haunter)

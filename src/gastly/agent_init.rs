@@ -80,7 +80,7 @@ unsafe fn hide_all_evolution_meshes(boma: &mut smash::app::BattleObjectModuleAcc
 
 // Force complete reset to Gastly stage for marked costume slots
 unsafe fn force_gastly_reset_for_marked_costume(boma: &mut smash::app::BattleObjectModuleAccessor, player_state: &mut PlayerEvolutionState, color_id: usize) {
-    if color_id < 256 && crate::MARKED_COLORS[color_id] {
+    if crate::is_marked_gastly_costume(boma) {
         player_state.full_reset_on_respawn(boma);
         player_state.stage = EvolutionStage::Gastly;
         player_state.evolution_target_stage = EvolutionStage::Gastly;
@@ -105,9 +105,10 @@ pub unsafe extern "C" fn agent_reset_gastly_evolution(fighter: &mut L2CFighterCo
     if utility::get_kind(boma) == *FIGHTER_KIND_PURIN {
         let entry_id_u32 = entry_id_val as u32;
         let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
+        let instance_key = crate::gastly::get_instance_key(boma);
 
         let mut states_map_writer = FIGHTER_STATES.write();
-        let player_state = states_map_writer.entry(entry_id_u32).or_insert_with(PlayerEvolutionState::new);
+        let player_state = states_map_writer.entry(instance_key).or_insert_with(PlayerEvolutionState::new);
 
         // Clean up dark effects and flash macros on reset
         crate::gastly::darkfx::cleanup_dark_effects_on_death(entry_id_u32);
@@ -196,8 +197,9 @@ unsafe extern "C" fn training_mode_reset_handler(fighter: &mut L2CFighterCommon)
 
     // Check ALL possible entries for marked slots and reset them
     let mut states_map_writer = crate::gastly::FIGHTER_STATES.write();
-    for (check_entry_id, player_state) in states_map_writer.iter_mut() {
-        let check_boma = smash::app::sv_battle_object::module_accessor(*check_entry_id);
+    for (instance_key, player_state) in states_map_writer.iter_mut() {
+        let check_entry_id = (*instance_key % 8) as u32; // Convert instance_key back to entry_id
+        let check_boma = smash::app::sv_battle_object::module_accessor(check_entry_id);
         if !check_boma.is_null() && utility::get_kind(&mut *check_boma) == *FIGHTER_KIND_PURIN {
             let check_color_id = WorkModule::get_int(check_boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
             let is_marked_slot = check_color_id < 256 && crate::MARKED_COLORS[check_color_id];
@@ -216,6 +218,10 @@ unsafe extern "C" fn training_mode_reset_handler(fighter: &mut L2CFighterCommon)
                 //  Reset evolution penalties during training reset
                 player_state.evo_attempt_delay_damage_taken_penalty = 0.0;
                 player_state.evo_attempt_delay_hits_penalty = 0;
+                
+                // Reset damage tracking to prevent stale healing detection from previous session
+                crate::gastly::reset_damage_tracker_for_entry(check_boma);
+                crate::gastly::reset_heal_tracker_for_entry(check_boma);
                 
                 // Only force stage reset if not already Gastly
                 if player_state.stage != crate::gastly::player_state::EvolutionStage::Gastly {

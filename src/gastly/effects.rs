@@ -131,22 +131,22 @@ impl RolloutBombTracker {
 }
 
 // Static tracking arrays for various effects across all players
-static mut ROLLOUT_BOMB_TRACKERS: [RolloutBombTracker; 8] = [RolloutBombTracker::new(); 8];
-static mut CUSTOM_AURA_HANDLE: [u32; 8] = [0; 8];
-static mut LAST_FS_FLAG: [bool; 8] = [false; 8];
-static mut LAST_MEGA_MODE: [bool; 8] = [false; 8];
-static mut LAST_FS_STATUS: [i32; 8] = [-1; 8];
-static mut LAST_CRY_SPAWN: [i32; 8] = [-60; 8];
-static mut EVOLUTION_SPARKLE_HANDLE: [u32; 8] = [0; 8];
-static mut EVOLUTION_SPARKLE_SPAWNED: [bool; 8] = [false; 8];
-static mut DOWN_TAUNT_FRAME1_SPAWNED: [bool; 8] = [false; 8];
-static mut DOWN_TAUNT_FRAME90_SPAWNED: [bool; 8] = [false; 8];
-static mut LAST_DOWN_TAUNT_MOTION: [u64; 8] = [0; 8];
-static mut CHARGE_MAX_FRAME1_SPAWNED: [bool; 8] = [false; 8];
-static mut LAST_CHARGE_MAX_STATUS: [i32; 8] = [-1; 8];
-static mut LAST_MAX_SIGN_FRAME: [i32; 8] = [-15; 8];
-static mut LAST_SPEEDBOOSTER_FRAME: [i32; 8] = [-10; 8];
-static mut LAST_STATUS_FOR_BOMB: [i32; 8] = [-1; 8];
+static mut ROLLOUT_BOMB_TRACKERS: [RolloutBombTracker; 256] = [RolloutBombTracker::new(); 256];
+static mut CUSTOM_AURA_HANDLE: [u32; 256] = [0; 256];
+static mut LAST_FS_FLAG: [bool; 256] = [false; 256];
+static mut LAST_MEGA_MODE: [bool; 256] = [false; 256];
+static mut LAST_FS_STATUS: [i32; 256] = [-1; 256];
+static mut LAST_CRY_SPAWN: [i32; 256] = [-60; 256];
+static mut EVOLUTION_SPARKLE_HANDLE: [u32; 256] = [0; 256];
+static mut EVOLUTION_SPARKLE_SPAWNED: [bool; 256] = [false; 256];
+static mut DOWN_TAUNT_FRAME1_SPAWNED: [bool; 256] = [false; 256];
+static mut DOWN_TAUNT_FRAME90_SPAWNED: [bool; 256] = [false; 256];
+static mut LAST_DOWN_TAUNT_MOTION: [u64; 256] = [0; 256];
+static mut CHARGE_MAX_FRAME1_SPAWNED: [bool; 256] = [false; 256];
+static mut LAST_CHARGE_MAX_STATUS: [i32; 256] = [-1; 256];
+static mut LAST_MAX_SIGN_FRAME: [i32; 256] = [-15; 256];
+static mut LAST_SPEEDBOOSTER_FRAME: [i32; 256] = [-10; 256];
+static mut LAST_STATUS_FOR_BOMB: [i32; 256] = [-1; 256];
 
 static UNIVERSAL_EFFECTS: Lazy<Mutex<HashMap<String, UniversalEffectTracker>>> = 
     Lazy::new(|| Mutex::new(HashMap::new()));
@@ -239,13 +239,8 @@ unsafe fn spawn_gastly_aura(
     
     // Apply visual modifications from consolidated settings
     
-    // Apply RGB - use shiny colors for shiny slots
-    let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
-    let is_shiny = if color_id < 256 {
-        unsafe { crate::SHINY_COLORS[color_id] }
-    } else {
-        false
-    };
+    // Apply RGB - use shiny colors for shiny slots (only for Purin)
+    let is_shiny = unsafe { crate::is_shiny_gastly_costume(boma) };
 
     if is_shiny {
         EffectModule::set_rgb(boma, handle, 0.42, 0.75, 1.3); // Shiny blue aura
@@ -293,13 +288,8 @@ pub unsafe fn spawn_gastly_aura_direct(boma: *mut BattleObjectModuleAccessor) ->
     if handle != u64::MAX as u32 && handle != 0 {
         // Apply visual modifications
 
-        // Apply RGB - use shiny colors for shiny slots
-        let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
-        let is_shiny = if color_id < 256 {
-            unsafe { crate::SHINY_COLORS[color_id] }
-        } else {
-            false
-        };
+        // Apply RGB - use shiny colors for shiny slots (only for Purin)
+        let is_shiny = unsafe { crate::is_shiny_gastly_costume(boma) };
 
         if is_shiny {
             EffectModule::set_rgb(boma, handle, 0.42, 0.75, 1.3); // Shiny blue aura
@@ -553,13 +543,8 @@ unsafe fn check_and_apply_evolution_aura_rgb(
         // Normal RGB when not evolving or different evolution
         let settings = GASTLY_AURA_SETTINGS;
 
-        // Apply RGB - use shiny colors for shiny slots
-        let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
-        let is_shiny = if color_id < 256 {
-            unsafe { crate::SHINY_COLORS[color_id] }
-        } else {
-            false
-        };
+        // Apply RGB - use shiny colors for shiny slots (only for Purin)
+        let is_shiny = unsafe { crate::is_shiny_gastly_costume(boma) };
 
         if is_shiny {
             EffectModule::set_rgb(boma, aura_handle, 0.42, 0.75, 1.3); // Shiny blue aura
@@ -733,13 +718,44 @@ pub unsafe fn handle_gastly_effects(
     fighter: &mut L2CFighterCommon
 ) {
 
-    let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
-    if color_id >= 256 || !crate::MARKED_COLORS[color_id] {
+    // Only apply to marked Gastly costumes (Purin only)
+    if !crate::is_marked_gastly_costume(boma) {
         return;
     }
 
     let current_status = StatusModule::status_kind(boma);
     let current_frame = player_state.current_frame;
+    
+    // Skip effect management during death/rebirth to prevent conflicts with cleanup
+    let is_dead_or_rebirth = current_status == *smash::lib::lua_const::FIGHTER_STATUS_KIND_DEAD || 
+                            current_status == *smash::lib::lua_const::FIGHTER_STATUS_KIND_REBIRTH;
+    
+    // Also check for recent death to prevent effects spam in duo matches
+    static mut RECENT_DEATH_STATUS: [bool; 256] = [false; 256];
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
+    
+    if instance_key < 256 {
+        if is_dead_or_rebirth {
+            RECENT_DEATH_STATUS[instance_key] = true;
+            return;
+        }
+        
+        // If we recently died, skip effects for a few frames to prevent spam
+        if RECENT_DEATH_STATUS[instance_key] {
+            // Check if we're in a stable state (not in transition statuses)
+            let stable_statuses = [
+                *smash::lib::lua_const::FIGHTER_STATUS_KIND_WAIT,
+                *smash::lib::lua_const::FIGHTER_STATUS_KIND_WALK,
+                *smash::lib::lua_const::FIGHTER_STATUS_KIND_DASH,
+                *smash::lib::lua_const::FIGHTER_STATUS_KIND_RUN,
+            ];
+            if stable_statuses.contains(&current_status) {
+                RECENT_DEATH_STATUS[instance_key] = false; // Clear death flag
+            } else {
+                return; // Still in transition, skip effects
+            }
+        }
+    }
     
     // SMASH BALL AURA REPLACEMENT - HANDLE FIRST
     let is_final_smash_flag = WorkModule::is_flag(boma, *FIGHTER_INSTANCE_WORK_ID_FLAG_FINAL);
@@ -752,11 +768,9 @@ pub unsafe fn handle_gastly_effects(
         // Try multiple methods to kill the custom aura
         macros::EFFECT_OFF_KIND(fighter, Hash40::new("sys_special_all_up"), false, false);
         EffectModule::kill_kind(boma, Hash40::new("sys_special_all_up"), false, true);
-        
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-        if entry_id < 8 && CUSTOM_AURA_HANDLE[entry_id] != 0 {
-            EffectModule::kill(boma, CUSTOM_AURA_HANDLE[entry_id], false, true);
-            CUSTOM_AURA_HANDLE[entry_id] = 0;
+        if instance_key < 256 && CUSTOM_AURA_HANDLE[instance_key] != 0 {
+            EffectModule::kill(boma, CUSTOM_AURA_HANDLE[instance_key], false, true);
+            CUSTOM_AURA_HANDLE[instance_key] = 0;
         }
     }
     // Check if we have smash ball + are Gengar + have mega/giga mode set (but NOT in final smash)
@@ -773,12 +787,10 @@ pub unsafe fn handle_gastly_effects(
         EffectModule::kill_kind(boma, Hash40::new("sys_final_aura2"), false, true);
         
         // Check if we need to spawn our custom purple aura
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-        
-        if entry_id < 8 {
+        if instance_key < 256 {
             // Check if our custom aura exists
-            if CUSTOM_AURA_HANDLE[entry_id] == 0 || 
-               !EffectModule::is_exist_effect(boma, CUSTOM_AURA_HANDLE[entry_id]) {
+            if CUSTOM_AURA_HANDLE[instance_key] == 0 || 
+               !EffectModule::is_exist_effect(boma, CUSTOM_AURA_HANDLE[instance_key]) {
                 
                 // Spawn new custom purple aura
                 let handle = EffectModule::req_follow(
@@ -793,16 +805,15 @@ pub unsafe fn handle_gastly_effects(
                 if handle != u64::MAX as u32 && handle != 0 {
                     EffectModule::set_rgb(boma, handle, 1.0, 0.2, 1.0); // Purple
                     EffectModule::set_alpha(boma, handle, 1.0);
-                    CUSTOM_AURA_HANDLE[entry_id] = handle;
+                    CUSTOM_AURA_HANDLE[instance_key] = handle;
                 }
             }
         }
     } else {
         // Clean up custom aura if conditions not met
-        let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-        if entry_id < 8 && CUSTOM_AURA_HANDLE[entry_id] != 0 {
-            EffectModule::kill(boma, CUSTOM_AURA_HANDLE[entry_id], false, true);
-            CUSTOM_AURA_HANDLE[entry_id] = 0;
+        if instance_key < 256 && CUSTOM_AURA_HANDLE[instance_key] != 0 {
+            EffectModule::kill(boma, CUSTOM_AURA_HANDLE[instance_key], false, true);
+            CUSTOM_AURA_HANDLE[instance_key] = 0;
         }
     }
     
@@ -888,14 +899,14 @@ unsafe fn handle_final_smash_special_effects(
     current_frame: i32,
     is_final_smash_flag: bool
 ) {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-    if entry_id >= 8 { return; }
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
+    if instance_key >= 256 { return; }
 
     // Track previous states for trigger detection
     
-    let fs_flag_just_gained = !LAST_FS_FLAG[entry_id] && is_final_smash_flag;
-    let mega_mode_just_activated = !LAST_MEGA_MODE[entry_id] && player_state.mega_gengar_form_active;
-    let status_just_changed = LAST_FS_STATUS[entry_id] != current_status;
+    let fs_flag_just_gained = !LAST_FS_FLAG[instance_key] && is_final_smash_flag;
+    let mega_mode_just_activated = !LAST_MEGA_MODE[instance_key] && player_state.mega_gengar_form_active;
+    let status_just_changed = LAST_FS_STATUS[instance_key] != current_status;
     
     // Lucario Mega Symbol - when BOTH smash ball + mega mode are active
     if player_state.stage == EvolutionStage::Gengar && 
@@ -978,9 +989,9 @@ unsafe fn handle_final_smash_special_effects(
         }
     }
     // Update tracking variables
-    LAST_FS_FLAG[entry_id] = is_final_smash_flag;
-    LAST_MEGA_MODE[entry_id] = player_state.mega_gengar_form_active;
-    LAST_FS_STATUS[entry_id] = current_status;
+    LAST_FS_FLAG[instance_key] = is_final_smash_flag;
+    LAST_MEGA_MODE[instance_key] = player_state.mega_gengar_form_active;
+    LAST_FS_STATUS[instance_key] = current_status;
 }
 
 // Helper function to check if we're in any final smash status
@@ -990,9 +1001,9 @@ unsafe fn is_final_smash_status(status: i32) -> bool {
 
 // Spawn Bayonetta Final Cry effect (during finalwait)
 unsafe fn spawn_bayonetta_final_cry(boma: *mut BattleObjectModuleAccessor, current_frame: i32) {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
     
-    if entry_id < 8 && (current_frame - LAST_CRY_SPAWN[entry_id] >= 60) {
+    if instance_key < 256 && (current_frame - LAST_CRY_SPAWN[instance_key] >= 60) {
         let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
         let rotation_vector = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
         
@@ -1007,7 +1018,7 @@ unsafe fn spawn_bayonetta_final_cry(boma: *mut BattleObjectModuleAccessor, curre
         ) as u32;
         
         if handle != u64::MAX as u32 && handle != 0 {
-            LAST_CRY_SPAWN[entry_id] = current_frame;
+            LAST_CRY_SPAWN[instance_key] = current_frame;
         }
     }
 }
@@ -1022,11 +1033,11 @@ unsafe fn handle_evolution_effects(
 ) {
     // Static tracking for evolution sparkle effect
     
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
     
     if player_state.is_evolving {
         // Spawn sys_fairybottle_navy2 effect once at start of evolution
-        if entry_id < 8 && !EVOLUTION_SPARKLE_SPAWNED[entry_id] {
+        if instance_key < 256 && !EVOLUTION_SPARKLE_SPAWNED[instance_key] {
             let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
             let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
             
@@ -1044,21 +1055,21 @@ unsafe fn handle_evolution_effects(
                 EffectModule::set_rgb(boma, handle, 1.0, 5.0, 1.0);
                 EffectModule::set_alpha(boma, handle, 1.0);
                 EffectModule::set_rate(boma, handle, 0.5);
-                EVOLUTION_SPARKLE_HANDLE[entry_id] = handle;
-                EVOLUTION_SPARKLE_SPAWNED[entry_id] = true;
+                EVOLUTION_SPARKLE_HANDLE[instance_key] = handle;
+                EVOLUTION_SPARKLE_SPAWNED[instance_key] = true;
             }
         }
         
         
     } else {
         // Clean up evolution sparkle effect when evolution ends
-        if entry_id < 8 && EVOLUTION_SPARKLE_SPAWNED[entry_id] {
-            if EVOLUTION_SPARKLE_HANDLE[entry_id] != 0 && 
-               EffectModule::is_exist_effect(boma, EVOLUTION_SPARKLE_HANDLE[entry_id]) {
-                EffectModule::kill(boma, EVOLUTION_SPARKLE_HANDLE[entry_id], false, true);
+        if instance_key < 256 && EVOLUTION_SPARKLE_SPAWNED[instance_key] {
+            if EVOLUTION_SPARKLE_HANDLE[instance_key] != 0 && 
+               EffectModule::is_exist_effect(boma, EVOLUTION_SPARKLE_HANDLE[instance_key]) {
+                EffectModule::kill(boma, EVOLUTION_SPARKLE_HANDLE[instance_key], false, true);
             }
-            EVOLUTION_SPARKLE_HANDLE[entry_id] = 0;
-            EVOLUTION_SPARKLE_SPAWNED[entry_id] = false;
+            EVOLUTION_SPARKLE_HANDLE[instance_key] = 0;
+            EVOLUTION_SPARKLE_SPAWNED[instance_key] = false;
         }
         
         // Ensure normal color state (no lingering flash effects)
@@ -1182,19 +1193,20 @@ unsafe fn handle_evolution_effects(
                 SoundModule::set_se_vol(boma, cry_handle as i32, 2.5, 0);
                 
                 // Track cry sound playback (existing code)
+                let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
                 match player_state.stage {
                     EvolutionStage::Haunter => {
                         crate::gastly::ui_management::track_cry_sound_playback(
                             Hash40::new("cry_haunter"),
                             player_state.current_frame,
-                            entry_id as u32
+                            entry_id
                         );
                     },
                     EvolutionStage::Gengar => {
                         crate::gastly::ui_management::track_cry_sound_playback(
                             Hash40::new("cry_gengar"),
                             player_state.current_frame,
-                            entry_id as u32
+                            entry_id
                         );
                     },
                     _ => {}
@@ -1273,8 +1285,8 @@ unsafe fn handle_down_taunt_effects(
 ) {
     // Static tracking for down taunt effects
     
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-    if entry_id >= 8 { return; }
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
+    if instance_key >= 256 { return; }
     
     // Check if we're in down taunt by motion instead of status
     let current_motion = MotionModule::motion_kind(boma);
@@ -1286,14 +1298,14 @@ unsafe fn handle_down_taunt_effects(
         let motion_frame = MotionModule::frame(boma) as i32;
         
         // Reset spawn flags when entering new down taunt motion
-        if LAST_DOWN_TAUNT_MOTION[entry_id] != current_motion {
-            DOWN_TAUNT_FRAME1_SPAWNED[entry_id] = false;
-            DOWN_TAUNT_FRAME90_SPAWNED[entry_id] = false;
-            LAST_DOWN_TAUNT_MOTION[entry_id] = current_motion;
+        if LAST_DOWN_TAUNT_MOTION[instance_key] != current_motion {
+            DOWN_TAUNT_FRAME1_SPAWNED[instance_key] = false;
+            DOWN_TAUNT_FRAME90_SPAWNED[instance_key] = false;
+            LAST_DOWN_TAUNT_MOTION[instance_key] = current_motion;
         }
         
         // Frame 1 effect (one-shot)
-        if motion_frame >= 1 && !DOWN_TAUNT_FRAME1_SPAWNED[entry_id] {
+        if motion_frame >= 1 && !DOWN_TAUNT_FRAME1_SPAWNED[instance_key] {
             let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
             let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
             
@@ -1308,12 +1320,12 @@ unsafe fn handle_down_taunt_effects(
             ) as u32;
             
             if handle != u64::MAX as u32 && handle != 0 {
-                DOWN_TAUNT_FRAME1_SPAWNED[entry_id] = true;
+                DOWN_TAUNT_FRAME1_SPAWNED[instance_key] = true;
             }
         }
         
         // Frame 90 effect (one-shot) - CHANGED FROM 100 TO 90
-        if motion_frame >= 90 && !DOWN_TAUNT_FRAME90_SPAWNED[entry_id] {
+        if motion_frame >= 90 && !DOWN_TAUNT_FRAME90_SPAWNED[instance_key] {
             let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
             let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
             
@@ -1328,15 +1340,15 @@ unsafe fn handle_down_taunt_effects(
             ) as u32;
             
             if handle != u64::MAX as u32 && handle != 0 {
-                DOWN_TAUNT_FRAME90_SPAWNED[entry_id] = true;
+                DOWN_TAUNT_FRAME90_SPAWNED[instance_key] = true;
             }
         }
     } else {
         // Reset flags when not in down taunt motion
-        if LAST_DOWN_TAUNT_MOTION[entry_id] != 0 {
-            DOWN_TAUNT_FRAME1_SPAWNED[entry_id] = false;
-            DOWN_TAUNT_FRAME90_SPAWNED[entry_id] = false;
-            LAST_DOWN_TAUNT_MOTION[entry_id] = 0;
+        if LAST_DOWN_TAUNT_MOTION[instance_key] != 0 {
+            DOWN_TAUNT_FRAME1_SPAWNED[instance_key] = false;
+            DOWN_TAUNT_FRAME90_SPAWNED[instance_key] = false;
+            LAST_DOWN_TAUNT_MOTION[instance_key] = 0;
         }
     }
 }
@@ -1350,21 +1362,21 @@ unsafe fn handle_special_n_charge_max_effects(
 ) {
     // Static tracking for charge max effects
     
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-    if entry_id >= 8 { return; }
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
+    if instance_key >= 256 { return; }
     
     // Check if we're in special n charge max status
     let is_charge_max = current_status == PURIN_SPECIAL_N_HOLD_MAX; // 0x1E2
     
     if is_charge_max {
         // Reset spawn flag when entering new charge max status
-        if LAST_CHARGE_MAX_STATUS[entry_id] != current_status {
-            CHARGE_MAX_FRAME1_SPAWNED[entry_id] = false;
-            LAST_CHARGE_MAX_STATUS[entry_id] = current_status;
+        if LAST_CHARGE_MAX_STATUS[instance_key] != current_status {
+            CHARGE_MAX_FRAME1_SPAWNED[instance_key] = false;
+            LAST_CHARGE_MAX_STATUS[instance_key] = current_status;
         }
         
         // Frame 1 effect (one-shot)
-        if !CHARGE_MAX_FRAME1_SPAWNED[entry_id] {
+        if !CHARGE_MAX_FRAME1_SPAWNED[instance_key] {
             let position_offset = Vector3f { x: 0.0, y: 0.0, z: 0.0 };
             let rotation_vector = Vector3f { x: 0.0, y: 90.0, z: 0.0 };
             
@@ -1379,14 +1391,14 @@ unsafe fn handle_special_n_charge_max_effects(
             ) as u32;
             
             if handle != u64::MAX as u32 && handle != 0 {
-                CHARGE_MAX_FRAME1_SPAWNED[entry_id] = true;
+                CHARGE_MAX_FRAME1_SPAWNED[instance_key] = true;
             }
         }
     } else {
         // Reset flag when not in charge max status
-        if LAST_CHARGE_MAX_STATUS[entry_id] != -1 {
-            CHARGE_MAX_FRAME1_SPAWNED[entry_id] = false;
-            LAST_CHARGE_MAX_STATUS[entry_id] = -1;
+        if LAST_CHARGE_MAX_STATUS[instance_key] != -1 {
+            CHARGE_MAX_FRAME1_SPAWNED[instance_key] = false;
+            LAST_CHARGE_MAX_STATUS[instance_key] = -1;
         }
     }
 }
@@ -1399,11 +1411,12 @@ unsafe fn handle_shadowball_effects(
     current_status: i32,
     current_frame: i32
 ) {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
-    if entry_id >= 8 { return; }
+    let instance_key = crate::gastly::get_instance_key(boma) as usize;
+    if instance_key >= 256 { return; }
+    let entry_id = (instance_key % 8) as usize; // For backward compatibility with UI effects
 
     // Always kill purin_appeal_lw effect
-    EffectModule::kill_kind(boma, Hash40::new("purin_appeal_lw"), false, true);
+    EffectModule::kill_kind(boma, Hash40::new("purin_appeal_lw"), false, false);
     
     let shadowball_state = detect_shadowball_hitbox_state(boma, player_state);
     
@@ -1412,21 +1425,23 @@ unsafe fn handle_shadowball_effects(
         ShadowballState::ChargedRolloutWithHitbox | 
         ShadowballState::RegularRolloutWithHitbox | 
         ShadowballState::AirToGroundRolloutWithHitbox => {
-            // Main shadowball effect
+            // Main shadowball effect (make key unique per player)
             let shadowball_config = EffectConfig::new("mewtwo_shadowball", 15.0, 2.0, "body")
                 .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
             
+            let shadowball_key = format!("mewtwo_shadowball_main_{}", instance_key);
             manage_universal_effect(
-                fighter, boma, &shadowball_config, "mewtwo_shadowball_main",
+                fighter, boma, &shadowball_config, &shadowball_key,
                 current_frame, current_status, true, true
             );
             
-            // Tail effect
+            // Tail effect (make key unique per player)
             let tail_config = EffectConfig::new("mewtwo_shadowball_tail", 0.0, 2.0, "body")
                 .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
             
+            let tail_key = format!("mewtwo_shadowball_tail_{}", instance_key);
             manage_universal_effect(
-                fighter, boma, &tail_config, "mewtwo_shadowball_tail",
+                fighter, boma, &tail_config, &tail_key,
                 current_frame, current_status, true, true
             );
             
@@ -1443,7 +1458,7 @@ unsafe fn handle_shadowball_effects(
             ];
             
             for effect_name in purin_effects.iter() {
-                EffectModule::kill_kind(boma, Hash40::new(effect_name), false, true);
+                EffectModule::kill_kind(boma, Hash40::new(effect_name), false, false);
             }
         },
         
@@ -1451,10 +1466,10 @@ unsafe fn handle_shadowball_effects(
         ShadowballState::ChargedRollout |
         ShadowballState::RegularRollout |
         ShadowballState::AirToGroundRollout => {
-            // Clean up shadowball effects when no hitboxes are active
+            // Clean up shadowball effects when no hitboxes are active (per-player cleanup)
             if let Ok(mut effects) = UNIVERSAL_EFFECTS.lock() {
                 let shadowball_keys: Vec<String> = effects.keys()
-                    .filter(|k| k.contains("mewtwo_shadowball"))
+                    .filter(|k| k.contains("mewtwo_shadowball") && k.ends_with(&format!("_{}", instance_key)))
                     .cloned()
                     .collect();
                 
@@ -1471,37 +1486,40 @@ unsafe fn handle_shadowball_effects(
             let is_hold_status = current_status == 0x1E1 || current_status == 0x1E2;
             
             if is_hold_status {
-                // Main shadowball effect
+                // Main shadowball effect (unique per player)
                 let shadowball_config = EffectConfig::new("mewtwo_shadowball", 15.0, 2.0, "body")
                     .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
                 
+                let shadowball_key = format!("mewtwo_shadowball_main_{}", instance_key);
                 manage_universal_effect(
-                    fighter, boma, &shadowball_config, "mewtwo_shadowball_main",
+                    fighter, boma, &shadowball_config, &shadowball_key,
                     current_frame, current_status, true, true
                 );
                 
-                // Tail effect
+                // Tail effect (unique per player)
                 let tail_config = EffectConfig::new("mewtwo_shadowball_tail", 0.0, 2.0, "body")
                     .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
                 
+                let tail_key = format!("mewtwo_shadowball_tail_{}", instance_key);
                 manage_universal_effect(
-                    fighter, boma, &tail_config, "mewtwo_shadowball_tail",
+                    fighter, boma, &tail_config, &tail_key,
                     current_frame, current_status, true, true
                 );
                 
-                // Hold-specific effect
+                // Hold-specific effect (unique per player)
                 let hold_config = EffectConfig::new("mewtwo_shadowball_hold", 15.0, 2.0, "body")
                     .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
                 
+                let hold_key = format!("mewtwo_shadowball_hold_{}", instance_key);
                 manage_universal_effect(
-                    fighter, boma, &hold_config, "mewtwo_shadowball_hold",
+                    fighter, boma, &hold_config, &hold_key,
                     current_frame, current_status, true, false
                 );
                 
                 // Max sign effect during HOLD_MAX status
                 if current_status == 0x1E2 {
                     
-                    if entry_id < 8 && (current_frame - LAST_MAX_SIGN_FRAME[entry_id] >= 15) {
+                    if instance_key < 256 && (current_frame - LAST_MAX_SIGN_FRAME[instance_key] >= 15) {
                         let max_sign_config = EffectConfig::new("mewtwo_shadowball_max_sign", 15.0, 2.0, "body")
                             .with_params(1.0, 1.0, (0.0, 90.0, 0.0));
                         
@@ -1511,7 +1529,7 @@ unsafe fn handle_shadowball_effects(
                             current_frame, current_status, true, true
                         );
                         
-                        LAST_MAX_SIGN_FRAME[entry_id] = current_frame;
+                        LAST_MAX_SIGN_FRAME[instance_key] = current_frame;
                     }
                 }
                 
@@ -1528,17 +1546,17 @@ unsafe fn handle_shadowball_effects(
                 ];
                 
                 for effect_name in purin_effects.iter() {
-                    EffectModule::kill_kind(boma, Hash40::new(effect_name), false, true);
+                    EffectModule::kill_kind(boma, Hash40::new(effect_name), false, false);
                 }
             }
         },
         
         // Charging below threshold - no special effects
         ShadowballState::ChargingBelowThreshold => {
-            // Clean up any existing shadowball effects
+            // Clean up any existing shadowball effects (per-player cleanup)
             if let Ok(mut effects) = UNIVERSAL_EFFECTS.lock() {
                 let shadowball_keys: Vec<String> = effects.keys()
-                    .filter(|k| k.contains("mewtwo_shadowball"))
+                    .filter(|k| k.contains("mewtwo_shadowball") && k.ends_with(&format!("_{}", instance_key)))
                     .cloned()
                     .collect();
                 
@@ -1552,10 +1570,10 @@ unsafe fn handle_shadowball_effects(
         
         // Not active - clean up everything
         ShadowballState::NotActive => {
-            // Clean up effects when not in shadowball states
+            // Clean up effects when not in shadowball states (per-player cleanup)
             if let Ok(mut effects) = UNIVERSAL_EFFECTS.lock() {
                 let shadowball_keys: Vec<String> = effects.keys()
-                    .filter(|k| k.contains("mewtwo_shadowball"))
+                    .filter(|k| k.contains("mewtwo_shadowball") && k.ends_with(&format!("_{}", instance_key)))
                     .cloned()
                     .collect();
                 
@@ -1603,7 +1621,7 @@ unsafe fn handle_shadowball_effects(
         
         if reached_charge_max_threshold && model_is_invisible { // <- Use shadowball state instead
             
-            if entry_id < 8 && (current_frame - LAST_SPEEDBOOSTER_FRAME[entry_id] >= 8) {
+            if instance_key < 256 && (current_frame - LAST_SPEEDBOOSTER_FRAME[instance_key] >= 8) {
                 // Spawn speed booster effect
                 macros::EFFECT_FLW_POS(
                     fighter,
@@ -1618,7 +1636,7 @@ unsafe fn handle_shadowball_effects(
                 macros::LAST_EFFECT_SET_COLOR(fighter, 0.7, 0.2, 1.0);
                 macros::LAST_EFFECT_SET_ALPHA(fighter, 0.75);
                 
-                LAST_SPEEDBOOSTER_FRAME[entry_id] = current_frame;
+                LAST_SPEEDBOOSTER_FRAME[instance_key] = current_frame;
             }
         }
 
@@ -1632,7 +1650,7 @@ unsafe fn handle_shadowball_effects(
     let is_hit_end_status = current_status == 0x1E7;
     
     if is_hit_end_status {
-        let status_just_changed = LAST_STATUS_FOR_BOMB[entry_id] != current_status;
+        let status_just_changed = LAST_STATUS_FOR_BOMB[instance_key] != current_status;
         
         if status_just_changed {
             macros::EFFECT(
@@ -1665,7 +1683,7 @@ unsafe fn handle_shadowball_effects(
         }
     }
     
-    LAST_STATUS_FOR_BOMB[entry_id] = current_status;
+    LAST_STATUS_FOR_BOMB[instance_key] = current_status;
     
     // Reset bomb tracker when not in any shadowball-related status
     let is_any_shadowball_status = current_status == 0x1E1 || current_status == 0x1E2 || 
@@ -1704,6 +1722,29 @@ pub unsafe fn init_gastly_aura_handle(boma: *mut BattleObjectModuleAccessor) {
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_GASTLY_AURA_FRAME);
     WorkModule::set_flag(boma, false, FIGHTER_PURIN_INSTANCE_WORK_ID_FLAG_GASTLY_AURA_ACTIVE);
     
+}
+
+/// Clean up all universal effects for a specific player
+pub unsafe fn cleanup_player_universal_effects(instance_key: u32) {
+    if let Ok(mut effects) = UNIVERSAL_EFFECTS.lock() {
+        let player_keys: Vec<String> = effects.keys()
+            .filter(|k| k.ends_with(&format!("_{}", instance_key)))
+            .cloned()
+            .collect();
+        
+        // Get player's boma for effect killing
+        let entry_id = (instance_key % 8) as u32; // Convert instance_key back to entry_id
+        let boma = smash::app::sv_battle_object::module_accessor(entry_id);
+        
+        for key in player_keys {
+            if let Some(tracker) = effects.remove(&key) {
+                // Kill the visual effect if we have a valid boma and handle
+                if !boma.is_null() && tracker.handle != u32::MAX && tracker.handle != 0 {
+                    EffectModule::kill(boma, tracker.handle, false, true);
+                }
+            }
+        }
+    }
 }
 
 pub fn install_effects() {

@@ -15,10 +15,10 @@ use crate::gastly::player_state::EvolutionStage;
 
 // Helper function to get stage-specific attack voice
 unsafe fn get_attack_voice_correct(boma: *mut BattleObjectModuleAccessor, attack_type: &str) -> &'static str {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let states_map = FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         match player_state.stage {
             crate::gastly::player_state::EvolutionStage::Gastly => {
                 let random = crate::gastly::random_module::rand_range_i32(1, 4);

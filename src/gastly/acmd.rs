@@ -717,11 +717,11 @@ unsafe extern "C" fn effect_attacks4(agent: &mut L2CAgentBase) {
 unsafe extern "C" fn effect_catchpull(agent: &mut L2CAgentBase) {
     // Check if this player is in Gastly stage
     let boma = agent.module_accessor;
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let is_gastly_stage = {
         let states_map = FIGHTER_STATES.read();
-        states_map.get(&entry_id)
+        states_map.get(&instance_key)
             .map(|state| state.stage == EvolutionStage::Gastly)
             .unwrap_or(false)
     };
@@ -739,11 +739,11 @@ unsafe extern "C" fn effect_catchpull(agent: &mut L2CAgentBase) {
 unsafe extern "C" fn effect_catchwait(agent: &mut L2CAgentBase) {
     // Check if this player is in Gastly stage
     let boma = agent.module_accessor;
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     let is_gastly_stage = {
         let states_map = FIGHTER_STATES.read();
-        states_map.get(&entry_id)
+        states_map.get(&instance_key)
             .map(|state| state.stage == EvolutionStage::Gastly)
             .unwrap_or(false)
     };

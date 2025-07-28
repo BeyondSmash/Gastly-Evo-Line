@@ -9,6 +9,11 @@ use skyline::libc::c_uint;
 use crate::gastly::constants::*;
 use crate::gastly::player_state::{PlayerEvolutionState, EvolutionStage};
 
+// Import hash40 function for motion comparison
+fn hash40(s: &str) -> u64 {
+    Hash40::new(s).hash
+}
+
 // Motion-based expression detection for specific animations
 unsafe fn detect_motion_based_expression(
     boma: *mut BattleObjectModuleAccessor,
@@ -26,6 +31,95 @@ unsafe fn detect_motion_based_expression(
                 EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
             });
         }
+    }
+    
+    // Sleep motions - specific blinking patterns
+    let current_motion = MotionModule::motion_kind(boma);
+    let motion_frame_int = motion_frame as i32;
+    
+    // fura_sleep_start motion
+    if current_motion == hash40("fura_sleep_start") {
+        return Some(match motion_frame_int {
+            1..=2 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_N,
+                EvolutionStage::Haunter => *HAUNTER_EYE_N,
+                EvolutionStage::Gengar => *GENGAR_EYE_N,
+            },
+            3..=24 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_HALFBLINK1,
+                EvolutionStage::Haunter => *HAUNTER_EYE_HALFBLINK1,
+                EvolutionStage::Gengar => *GENGAR_EYE_HALFBLINK1,
+            },
+            25..=30 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_BLINK,
+                EvolutionStage::Haunter => *HAUNTER_EYE_BLINK,
+                EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
+            },
+            _ => return None,
+        });
+    }
+    
+    // fura_sleep_loop motion
+    if current_motion == hash40("fura_sleep_loop") {
+        if motion_frame_int >= 1 && motion_frame_int <= 78 {
+            return Some(match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_BLINK,
+                EvolutionStage::Haunter => *HAUNTER_EYE_BLINK,
+                EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
+            });
+        }
+    }
+    
+    // fura_sleep_end motion
+    if current_motion == hash40("fura_sleep_end") {
+        return Some(match motion_frame_int {
+            1 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_BLINK,
+                EvolutionStage::Haunter => *HAUNTER_EYE_BLINK,
+                EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
+            },
+            2..=11 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_N,
+                EvolutionStage::Haunter => *HAUNTER_EYE_N,
+                EvolutionStage::Gengar => *GENGAR_EYE_N,
+            },
+            12..=15 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_BLINK,
+                EvolutionStage::Haunter => *HAUNTER_EYE_BLINK,
+                EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
+            },
+            16..=17 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_HALFBLINK1,
+                EvolutionStage::Haunter => *HAUNTER_EYE_HALFBLINK1,
+                EvolutionStage::Gengar => *GENGAR_EYE_HALFBLINK1,
+            },
+            18..=58 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_N,
+                EvolutionStage::Haunter => *HAUNTER_EYE_N,
+                EvolutionStage::Gengar => *GENGAR_EYE_N,
+            },
+            59 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_HALFBLINK1,
+                EvolutionStage::Haunter => *HAUNTER_EYE_HALFBLINK1,
+                EvolutionStage::Gengar => *GENGAR_EYE_HALFBLINK1,
+            },
+            60..=62 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_BLINK,
+                EvolutionStage::Haunter => *HAUNTER_EYE_BLINK,
+                EvolutionStage::Gengar => *GENGAR_EYE_BLINK,
+            },
+            63..=64 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_HALFBLINK1,
+                EvolutionStage::Haunter => *HAUNTER_EYE_HALFBLINK1,
+                EvolutionStage::Gengar => *GENGAR_EYE_HALFBLINK1,
+            },
+            65..=76 => match player_state.stage {
+                EvolutionStage::Gastly => *GASTLY_EYE_N,
+                EvolutionStage::Haunter => *HAUNTER_EYE_N,
+                EvolutionStage::Gengar => *GENGAR_EYE_N,
+            },
+            _ => return None,
+        });
     }
     
     // Attack animations

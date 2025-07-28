@@ -1,6 +1,6 @@
 # Gastly Evolution Mod - Complete Feature Overview
 
-## 12,000 lines of code 🔥
+## 12,000+ lines of code 🔥
 
 ## Core Evolution System
 
@@ -211,9 +211,9 @@ Condition: Heal from ≥35% damage to 0% damage
 ### Victory Themes
 
 - Each Win animation has its own special background stage
-- Win1  = "Forest Manor" / "Old Chateau" - Pokémon Platinum
-- Win2 = "Lavender Town" - Pokémon Red / Blue
-- Win3 = "Spotted! (Pokémon Collector Version)" - Pokémon Platinum
+- Win1  = “Forest Manor” / “Old Chateau” - Pokémon Platinum
+- Win2 = “Lavender Town” - Pokémon Red / Blue
+- Win3 = “Spotted! (Pokémon Collector Version)” - Pokémon Platinum
 
 ### Current Costumes (mod can be reslotted to any slot using gastly.marker file)
 
@@ -242,6 +242,13 @@ Condition: Heal from ≥35% damage to 0% damage
 - Custom `chara_6` cutin UI was supposed to occur when Haunter and Gengar did their cry after evolving and their final smash. Also was for Mega Gengar final smash and Gigantamax Gengar final smash. Unfortunately, the cutin only shows up as black (The CSK Collection limitation).
 - Custom `chara_3` swapping was a consideration for the results screen evolution stage outcome, but was not utilized due to chara_6 not working, so I considered chara_3 to not work or not worth testing it.
 - The evolving sound(s) may cease if you are interrupted by a grab from an enemy.
+- In Gastly duos (Gastly vs. Gastly), when a shiny Gastly (Player 2) dies as Haunter/Gengar and respawns as Gastly, two things happen:
+1. Regular Gastly's UI flickers between Gastly ↔ Haunter/Gengar stages - it may, after some seconds, correctly become the correct evolution stage UI
+2. Shiny Gastly's UI gets stuck showing Haunter/Gengar instead of updating to Gastly after respawn
+    
+    Suspected Root Cause: Despite implementing instance isolation with unique instance_key calculations and per-player UI state management, the the_csk_collection_api::change_entry_chara_ui() API
+    appears to have some global behavior or shared state that causes cross-player interference. Multiple debugging approaches (stage change detection, staggered updates, validation layers, complete, UI resets) all failed to resolve the issue.
+    
 
 ---
 

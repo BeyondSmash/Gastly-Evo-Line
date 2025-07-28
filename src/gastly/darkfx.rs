@@ -77,11 +77,11 @@ static GASTLY_ATTACKERS_THIS_FRAME: Lazy<Mutex<Vec<AttackerInfo>>> =
 
 // Get evolution stage from player state
 unsafe fn get_evolution_stage(boma: *mut BattleObjectModuleAccessor) -> u32 {
-    let entry_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as u32;
+    let instance_key = crate::gastly::get_instance_key(boma);
     
     // Access FIGHTER_STATES to get the actual evolution stage
     let states_map = crate::gastly::FIGHTER_STATES.read();
-    if let Some(player_state) = states_map.get(&entry_id) {
+    if let Some(player_state) = states_map.get(&instance_key) {
         return match player_state.stage {
             crate::gastly::player_state::EvolutionStage::Gastly => 0,
             crate::gastly::player_state::EvolutionStage::Haunter => 1, 
@@ -101,8 +101,7 @@ unsafe fn check_for_dark_move(boma: *mut BattleObjectModuleAccessor) -> Option<(
     }
 
     // Check if this costume slot is marked for Gastly mod
-    let color_id = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
-    if color_id >= 256 || !crate::MARKED_COLORS[color_id] {
+    if !crate::is_marked_gastly_costume(boma) {
         return None;
     }
 
