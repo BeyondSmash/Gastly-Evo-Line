@@ -2,6 +2,11 @@
 
 ## 12,000+ lines of code 🔥
 
+### Current Costumes (mod can be reslotted to any slot using gastly.marker file)
+
+- Regular (c01)
+- Shiny (c02)
+
 ## Core Evolution System
 
 **Three-Stage Evolution Chain:**
@@ -214,11 +219,6 @@ Condition: Heal from ≥35% damage to 0% damage
 - Win1  = “Forest Manor” / “Old Chateau” - Pokémon Platinum
 - Win2 = “Lavender Town” - Pokémon Red / Blue
 - Win3 = “Spotted! (Pokémon Collector Version)” - Pokémon Platinum
-
-### Current Costumes (mod can be reslotted to any slot using gastly.marker file)
-
-- Regular (c01)
-- Shiny (c02)
 
 ### Credits
 
