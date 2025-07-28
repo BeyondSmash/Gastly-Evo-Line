@@ -62,21 +62,28 @@ Complete model replacements for each evolution stage-
 **Environmental Audio:**
 
 - **Levitation Sounds**: Gastly/Haunter float with ethereal movement sounds + Gengar Run
-- **Footsteps**: Only Gengar has footsteps (walk anims)
+- **Footsteps**: Only Gengar has footsteps (walking anims)
 
 **Healing Sound Cues:**
 
-- Potion: If you heal at least 15% damage, then you’ll hear a potion sfx
+- **Potion**:
 
 Condition: Heal ≥15% damage from any starting damage, EXCEPT when G_RESTORE applies
 
 - When it triggers: Using healing items that restore at least 15% health
-- Full Restore:
+- **Full Restore**:
 
 Condition: Heal from ≥35% damage to 0% damage
 
 - When it triggers: Using healing items (like heart containers) that completely restore health when you had at least 35% damage
-- Pokecenter Full Heal Jingle: You’ll hear the sfx during respawn/rebirth if you had 100% damage or greater upon the prior death
+- **Pokecenter Full Heal Jingle**: You’ll hear the sfx during respawn/rebirth if you had 100% damage or greater upon the prior death
+
+**Misc. Audio/Move Concept Change:**
+
+- Replaced Star KO, Knockout (stamina)
+- Stun by Mewtwo and deku nut item = Pokemon “Confused” Status SFX
+- Up Special = Hypnosis (replaces Jigglypuff’s Sing)
+- Side Special = Sucker Punch
 
 ## Item/Icon System
 
@@ -188,7 +195,7 @@ Condition: Heal from ≥35% damage to 0% damage
 
 - **Persistent Gas Cloud**: Floating aura effect (RGB: 0.6, 0.35, 0.7) with position/rotation offsets
 - **Evolution-Responsive RGB**: Aura changes to bright white (RGB: 7.0, 7.0, 7.0) during Gastly→Haunter evolution
-- **Intelligent Suppression**: Automatically hides during swimming, rollout hitboxes, specific motions
+- **Intelligent Suppression**: Automatically hides during swimming, rollout hitboxes, floor shadow crouching, specific motions
 - **Dual-Bone System**: Switches between `body` bone and `shadowball` bone based on Shadow Ball state
 - **Shiny Variant Support**: Blue aura (RGB: 0.42, 0.75, 1.3) for shiny costume slots
 
