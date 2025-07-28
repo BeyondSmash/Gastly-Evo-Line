@@ -1413,7 +1413,7 @@ unsafe fn handle_shadowball_effects(
 ) {
     let instance_key = crate::gastly::get_instance_key(boma) as usize;
     if instance_key >= 256 { return; }
-    let entry_id = (instance_key % 8) as usize; // For backward compatibility with UI effects
+    let entry_id = (instance_key / 32) as usize; // For backward compatibility with UI effects
 
     // Always kill purin_appeal_lw effect
     EffectModule::kill_kind(boma, Hash40::new("purin_appeal_lw"), false, false);
@@ -1733,7 +1733,7 @@ pub unsafe fn cleanup_player_universal_effects(instance_key: u32) {
             .collect();
         
         // Get player's boma for effect killing
-        let entry_id = (instance_key % 8) as u32; // Convert instance_key back to entry_id
+        let entry_id = (instance_key / 32) as u32; // Convert instance_key back to entry_id
         let boma = smash::app::sv_battle_object::module_accessor(entry_id);
         
         for key in player_keys {

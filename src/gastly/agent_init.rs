@@ -197,34 +197,38 @@ unsafe extern "C" fn training_mode_reset_handler(fighter: &mut L2CFighterCommon)
 
     // Check ALL possible entries for marked slots and reset them
     let mut states_map_writer = crate::gastly::FIGHTER_STATES.write();
-    for (instance_key, player_state) in states_map_writer.iter_mut() {
-        let check_entry_id = (*instance_key % 8) as u32; // Convert instance_key back to entry_id
+    
+    // Collect keys to avoid borrow checker issues
+    let instance_keys: Vec<u32> = states_map_writer.keys().copied().collect();
+    
+    for instance_key in instance_keys {
+        let check_entry_id = (instance_key / 32) as u32; // Convert instance_key back to entry_id
         let check_boma = smash::app::sv_battle_object::module_accessor(check_entry_id);
         if !check_boma.is_null() && utility::get_kind(&mut *check_boma) == *FIGHTER_KIND_PURIN {
             let check_color_id = WorkModule::get_int(check_boma, *FIGHTER_INSTANCE_WORK_ID_INT_COLOR) as usize;
             let is_marked_slot = check_color_id < 256 && crate::MARKED_COLORS[check_color_id];
             
             if is_marked_slot {
-                // Cancel any ongoing evolution
-                if player_state.is_evolving {
-                    cancel_evolution_for_entry(player_state, check_boma);
-                }
-                
-                // Reset hit counts for ALL marked slots during training reset
-                player_state.hits_landed_this_stage = 0;
-                player_state.damage_received_this_stage = 0.0;
-                player_state.previous_total_damage = 0.0;
-                
-                //  Reset evolution penalties during training reset
-                player_state.evo_attempt_delay_damage_taken_penalty = 0.0;
-                player_state.evo_attempt_delay_hits_penalty = 0;
-                
-                // Reset damage tracking to prevent stale healing detection from previous session
-                crate::gastly::reset_damage_tracker_for_entry(check_boma);
-                crate::gastly::reset_heal_tracker_for_entry(check_boma);
-                
-                // Only force stage reset if not already Gastly
-                if player_state.stage != crate::gastly::player_state::EvolutionStage::Gastly {
+                if let Some(player_state) = states_map_writer.get_mut(&instance_key) {
+                    // Cancel any ongoing evolution
+                    if player_state.is_evolving {
+                        cancel_evolution_for_entry(player_state, check_boma);
+                    }
+                    
+                    // Reset hit counts for ALL marked slots during training reset
+                    player_state.hits_landed_this_stage = 0;
+                    player_state.damage_received_this_stage = 0.0;
+                    player_state.previous_total_damage = 0.0;
+                    
+                    //  Reset evolution penalties during training reset
+                    player_state.evo_attempt_delay_damage_taken_penalty = 0.0;
+                    player_state.evo_attempt_delay_hits_penalty = 0;
+                    
+                    // Reset damage tracking to prevent stale healing detection from previous session
+                    crate::gastly::reset_damage_tracker_for_entry(check_boma);
+                    crate::gastly::reset_heal_tracker_for_entry(check_boma);
+                    
+                    // Force stage reset to Gastly (regardless of current stage)
                     player_state.stage = crate::gastly::player_state::EvolutionStage::Gastly;
                     player_state.evolution_target_stage = crate::gastly::player_state::EvolutionStage::Gastly;
                     player_state.is_evolving = false;

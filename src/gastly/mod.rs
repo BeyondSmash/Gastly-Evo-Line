@@ -60,7 +60,7 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
     static mut MEGASYMBOL_HANDLE: [u32; 256] = [0; 256];    
     
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) >= 256 { return; }
+    if instance_key >= 256 { return; }
     
     // Stop all sounds by handle AND by name (double safety)
     if EVOLVING_SOUND_HANDLE[instance_key] != 0 {
@@ -125,8 +125,7 @@ unsafe fn cleanup_all_evolution_sounds_on_death(boma: *mut BattleObjectModuleAcc
     WorkModule::set_float(boma, 0.0, FIGHTER_PURIN_INSTANCE_WORK_ID_FLOAT_G_RESTORE_TIMER);
     
     // Clear healing detection tracker to prevent stale healing from triggering sounds after rebirth
-    let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) < 256 {
+    if instance_key < 256 {
         HEAL_DETECTED[instance_key] = (0.0, -200);
         // Reset status tracking to prevent false rebirth exit detection
         LAST_STATUS[instance_key] = -1;
@@ -1057,11 +1056,27 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
             // On very first access OR first access after training reset, force Gastly
             if !FIRST_ACCESS_THIS_BOOT[instance_idx] {
                 
-                // Force create new Gastly state
+                // Force create new Gastly state and handle evolution cancellation
                 let mut states_map_writer = FIGHTER_STATES.write();
+                
+                // Check if we had an existing state that was evolving
+                let was_evolving = states_map_writer.get(&instance_key)
+                    .map(|state| state.is_evolving)
+                    .unwrap_or(false);
+                
+                // Cancel evolution sounds if evolving
+                if was_evolving {
+                    SoundModule::stop_se(boma, Hash40::new("evolving"), 0);
+                    SoundModule::stop_se(boma, Hash40::new("evolve_ss"), 0);
+                }
+                
                 states_map_writer.remove(&instance_key); // Remove any existing state
                 let new_state = states_map_writer.entry(instance_key).or_insert_with(PlayerEvolutionState::new);
-                // new_state is automatically Gastly stage
+                // new_state is automatically Gastly stage with is_evolving = false
+                
+                // Reset damage tracking to prevent stale healing detection from previous session
+                crate::gastly::reset_damage_tracker_for_entry(boma);
+                crate::gastly::reset_heal_tracker_for_entry(boma);
                 
                 // Force visual update
                 crate::gastly::visuals::update_body_and_unique_parts_visibility(boma, crate::gastly::player_state::EvolutionStage::Gastly);
@@ -1955,7 +1970,7 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
 }
 
 unsafe fn reset_all_match_tracking_by_instance_key(instance_key: usize, current_frame: i32) {
-    if (instance_key as usize) >= 256 { return; }
+    if instance_key >= 256 { return; }
 
     
     // Check if we already have heal data stored - don't overwrite it
@@ -2092,7 +2107,7 @@ unsafe fn detect_healing_events(
     player_state: &PlayerEvolutionState
 ) {
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) >= 256 { return; }
+    if instance_key >= 256 { return; }
     
     
     let current_status = StatusModule::status_kind(boma);
@@ -2209,14 +2224,14 @@ unsafe fn detect_healing_events(
 // Helper functions for resetting damage and heal tracking during training mode resets
 pub unsafe fn reset_damage_tracker_for_entry(boma: *mut BattleObjectModuleAccessor) {
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) < 256 {
+    if instance_key < 256 {
         DAMAGE_TRACKER[instance_key] = (0.0, -200);
     }
 }
 
 pub unsafe fn reset_heal_tracker_for_entry(boma: *mut BattleObjectModuleAccessor) {
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) < 256 {
+    if instance_key < 256 {
         HEAL_DETECTED[instance_key] = (0.0, -200);
         // Also reset the death tracking to prevent false healing detection
         LAST_DEATH_FRAME[instance_key] = -300;
@@ -2434,7 +2449,7 @@ unsafe fn handle_persistent_looping_sounds(
     static mut HAD_TURN_STATUS: [bool; 256] = [false; 256];
     
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) >= 256 { return; }
+    if instance_key >= 256 { return; }
     
     let status_just_changed = LAST_SPECIAL_N_STATUS[instance_key] != current_status;
     
@@ -2530,7 +2545,7 @@ unsafe fn handle_persistent_looping_sounds(
 
     // ===== G_POTION & G_RESTORE SOUND (HEALING DETECTION) =====
     let instance_key = get_instance_key(boma) as usize;
-    if (instance_key as usize) < 256 {
+    if instance_key < 256 {
 
         let current_status = StatusModule::status_kind(boma);
     
