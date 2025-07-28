@@ -3,3 +3,8 @@
 **/*.pyc
 Cargo.lock
 .DS_Store
+
+# Development files - keep local but don't track
+CLAUDE.md
+.claude/
+src.zip
