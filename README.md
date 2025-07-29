@@ -220,6 +220,8 @@ Condition: Heal from ≥35% damage to 0% damage
 - **Dark-Type Attack Effects**: Purple darkness effects on specific attacks (down tilt, down smash, aerials)
 - **Taunt Effect System**: Custom effects for down taunt at frames 1 and 90
 
+### **- 43 Wi-Fi Safe Spliced Animations! -**
+
 ### Victory Themes
 
 - Each Win animation has its own special background stage
