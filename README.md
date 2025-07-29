@@ -172,7 +172,6 @@ Condition: Heal from ≥35% damage to 0% damage
 **Menu Integration:**
 
 - **CSK Collection API**: Full integration with character selection mods
-- **Online Compatibility**: All UI elements work in online play
 
 ## Technical Features
 
