@@ -976,6 +976,7 @@ pub unsafe extern "C" fn gastly_fighter_frame_callback(fighter: &mut L2CFighterC
     let fighter_kind_val: i32 = utility::get_kind(&mut *boma);
     
     if fighter_kind_val != *FIGHTER_KIND_PURIN { return; }
+    
 
     let my_entry_id_i32 = WorkModule::get_int(boma, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID);
     let my_entry_id_u32 = my_entry_id_i32 as u32;
@@ -1819,7 +1820,8 @@ unsafe fn handle_grab_effect_cleanup(boma: *mut BattleObjectModuleAccessor, play
 
         update_body_and_unique_parts_visibility_with_enforcement(boma, EvolutionStage::Gastly, player_state);
         set_active_eye_mesh(boma, player_state, None);
-        return;
+        // Don't return early - allow healing detection to continue even during death states
+        // return;
     }
 
     for vanilla_eye in PURIN_VANILLA_EYES_TO_HIDE.iter() {
@@ -2106,18 +2108,30 @@ unsafe fn detect_healing_events(
     boma: *mut BattleObjectModuleAccessor,
     player_state: &PlayerEvolutionState
 ) {
+    static mut LAST_CALLBACK_DAMAGE: [f32; 256] = [0.0; 256];
+    
     let instance_key = get_instance_key(boma) as usize;
     if instance_key >= 256 { return; }
-    
     
     let current_status = StatusModule::status_kind(boma);
     let current_frame = player_state.current_frame;
     let current_damage = DamageModule::damage(boma, 0);
     
-    // ENHANCED: More aggressive exclusion including transitions
+    // Check for g_restore using backup damage tracker
+    let last_callback_damage = LAST_CALLBACK_DAMAGE[instance_key];
+    if current_damage <= 0.1 && last_callback_damage >= 35.0 {
+        HEAL_DETECTED[instance_key] = (-last_callback_damage, current_frame);
+        LAST_CALLBACK_DAMAGE[instance_key] = current_damage; // Update for next time
+        return;
+    }
+    
+    // Update backup tracker
+    LAST_CALLBACK_DAMAGE[instance_key] = current_damage;
+    
+    // ENHANCED: More aggressive exclusion including transitions (but allow DEAD/REBIRTH for g_restore)
     let excluded_statuses = [
-        *FIGHTER_STATUS_KIND_DEAD,      // 0xB5
-        *FIGHTER_STATUS_KIND_REBIRTH,   // 0xB6  
+        // *FIGHTER_STATUS_KIND_DEAD,      // 0xB5 - Allow for g_restore detection
+        // *FIGHTER_STATUS_KIND_REBIRTH,   // 0xB6 - Allow for g_restore detection  
         *FIGHTER_STATUS_KIND_STANDBY,   // 0x1D6
         *FIGHTER_STATUS_KIND_ENTRY,     // 0x1D9
     ];
@@ -2136,7 +2150,11 @@ unsafe fn detect_healing_events(
     
     // Don't detect healing if we recently died/respawned (prevent false healing detection during respawn)
     let frames_since_death = current_frame - LAST_DEATH_FRAME[instance_key];
-    if frames_since_death >= 0 && frames_since_death <= 360 { // Increased to 6 seconds
+    
+    // Special case: If current_frame is very low (like 1) and we have potential g_restore, don't block
+    let is_potential_g_restore_frame_reset = current_damage <= 0.1 && current_frame <= 10;
+    
+    if frames_since_death >= 0 && frames_since_death <= 360 && !is_potential_g_restore_frame_reset { // Increased to 6 seconds
         HEAL_DETECTED[instance_key] = (0.0, -200);
         DAMAGE_TRACKER[instance_key] = (current_damage, current_frame);
         return;
@@ -2175,10 +2193,16 @@ unsafe fn detect_healing_events(
     
     let (last_damage, last_frame) = DAMAGE_TRACKER[instance_key];
     
-    
     // Only proceed if we have valid previous data (handle frame resets) OR if we detect a major damage drop
-    let major_damage_drop = current_damage == 0.0 && last_damage > 15.0;
-    if ((current_frame - last_frame >= 1 || current_frame < last_frame) && last_frame >= 0 && last_damage > 0.0) || major_damage_drop {
+    let major_damage_drop = current_damage <= 0.1 && last_damage > 15.0;  // Changed to <= 0.1 to match g_restore logic
+    
+    // Special case: If we're at frame 1 with 0% damage, check if this could be a g_restore scenario
+    // In training mode, healing can reset frames to 1, so we need to allow this case
+    let potential_training_heal = current_frame <= 5 && current_damage <= 0.1 && last_frame < 0;
+    
+    let should_check = ((current_frame - last_frame >= 1 || current_frame < last_frame) && last_frame >= 0 && last_damage >= 0.0) || major_damage_drop || potential_training_heal;  // Changed > 0.0 to >= 0.0
+    
+    if should_check {
         let damage_change = current_damage - last_damage;
         
         // Basic validation for legitimate heals (not from match transitions)
@@ -2186,23 +2210,26 @@ unsafe fn detect_healing_events(
                                 damage_change >= -200.0 && // Not too huge (max 200% heal)
                                 current_frame - last_frame < 600; // Within 10 seconds
         
-        if !is_reasonable_heal {
+        // Special case: Always allow potential g_restore heals (35%+ to 0%)
+        let is_potential_g_restore = current_damage <= 0.1 && last_damage >= 35.0;
+        
+        if !is_reasonable_heal && !is_potential_g_restore {
             DAMAGE_TRACKER[instance_key] = (current_damage, current_frame);
             return;
         }
         
-        // ADDITIONAL PROTECTION: Don't detect healing after recent rebirth exit
+        // ADDITIONAL PROTECTION: Don't detect healing after recent rebirth exit (but allow g_restore)
         let frames_since_rebirth_exit = current_frame - LAST_REBIRTH_EXIT_FRAME[instance_key];
-        if frames_since_rebirth_exit >= 0 && frames_since_rebirth_exit <= 180 {
+        if frames_since_rebirth_exit >= 0 && frames_since_rebirth_exit <= 180 && !is_potential_g_restore {
             DAMAGE_TRACKER[instance_key] = (current_damage, current_frame);
-            return; // Skip healing detection after rebirth exit
+            return; // Skip healing detection after rebirth exit (except for g_restore)
         }
         
-        // Don't detect healing if we recently died/respawned
+        // Don't detect healing if we recently died/respawned (but allow g_restore)
         let frames_since_death = current_frame - LAST_DEATH_FRAME[instance_key];
-        if frames_since_death >= 0 && frames_since_death <= 360 {
+        if frames_since_death >= 0 && frames_since_death <= 360 && !is_potential_g_restore {
             DAMAGE_TRACKER[instance_key] = (current_damage, current_frame);
-            return; // Skip healing detection after death
+            return; // Skip healing detection after death (except for g_restore)
         }
         
         // Check for G_RESTORE: heal from >=35% to zero percent (has priority over G_POTION)
