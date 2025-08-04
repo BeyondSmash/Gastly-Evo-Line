@@ -206,6 +206,8 @@ Condition: Heal from ≥35% damage to 0% damage
 - **Frame Detection**: Multiple detection methods for charge states and hitbox activity - when hitbox is active (release) = shadow ball effects will be visible
 - **Bomb Effects**: Custom explosion effect on rollout collision
 
+### **Ink Blend Maps**
+
 ### **Final Smash**
 
 - **Ending Purple De-transform Effect**: During Mega/Giga Gengar forms
